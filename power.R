@@ -22,6 +22,7 @@ rm(result_df)
 load("Data/N_100.RData")
 load("Data/N_200.RData")
 load("Data/N_400.RData")
+load("Data/N_600.RData")
 
 power.t.test(n = NULL, delta = 0.13, sig.level = 0.05, power = 0.8)
 
@@ -87,7 +88,7 @@ power <- calculate_power(data = NULL)
 power
 
 #### Plots ####
-x <- seq(from = 90, to = 900, length.out = 10)
+x <- seq(from = 0, to = 0.75, by = 0.05)
 
 # jpeg(filename = "plots/line_400.jpeg")
 ggplot(data = power) + 
@@ -109,10 +110,9 @@ ggplot(data = power) +
   geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) + 
   geom_line(mapping = aes(x = x, y = 0.95, color = "0.95")) + 
   scale_color_viridis_d(name = "Method") + 
-  xlab(label = "n") + 
+  xlab(label = "delta") + 
   ylab(label = "Power") + 
-  ggtitle(label = "delta = 0.13") + 
-  theme_classic()
+  ggtitle(label = "N = 100")
 # dev.off()
 
 epi_seizures <- ggplot(data = epilepsy) + 

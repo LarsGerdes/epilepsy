@@ -4,7 +4,7 @@ library(tidyverse)
 library(GGally)
 
 # Data
-epilepsy <- read.csv(file = "epilepsy.csv", sep = ";") %>% 
+epilepsy <- as_tibble(read.csv(file = "epilepsy.csv", sep = ";")) %>% 
   rename(
     seizures_baseline = number.of.seizures.at.baseline, 
     seizures_treatment = number.of.seizures.under.treatment, 
@@ -24,12 +24,14 @@ epilepsy <- read.csv(file = "epilepsy.csv", sep = ";") %>%
     seizures_baseline_log = log(seizures_baseline), 
     time_study_log = log(time_study)
   )
+epilepsy
 summary(object = epilepsy)
 
 # Visualization
 # pdf(file = "plots/original_data.pdf", width = 13)
 ggpairs(
   data = epilepsy, 
+  columns = 2:9,
   mapping = aes(colour = 1), 
   title = "Original data",
   upper = list(continuous = "points", combo = "box", discrete = "facetbar"),
