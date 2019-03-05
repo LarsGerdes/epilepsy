@@ -106,44 +106,19 @@ ggplot() +
   geom_density(mapping = aes(x = time_baseline, colour = 1, fill = 2)) + 
   guides(colour = FALSE, fill = FALSE)
 
-# Trials of vecorization #######################################################
-seizures <- mapp
-lapply(X = lapply(X = lambda_treatment, FUN = rexp, n = 56), FUN = sum)
-cumsum(seizures)
-summary(seizures)
+# Power = 0.8 ##################################################################
+y <- power$neg_bin_p_value_treatment
+y1 <- power$neg_bin_p_value_treatment
+y2  <- rep(0.8, length(x))
 
-sum(sapply(
-  X = rexp(
-    n = 56, 
-    lambda_treatment[2]
-  ), 
-  FUN = function(S, t) {
-    sum(S < t)
-  }, 
-  t = 56
-))
-sum(
-  rexp(
-    n = 56, 
-    lambda_treatment[1]
-  ) < 56
-)
+above <- y1 > y2
+intersect <- which(diff(above) != 0)
 
+slope_1 <- (y1[intersect + 1] - y1[intersect]) / 
+  (x[intersect + 1] - x[intersect])
+slope_2 <- (y2[intersect + 1] - y2[intersect]) /
+  (x[intersect + 1] - x[intersect])
 
-
-cumsum(sapply(X = lambda_treatment, FUN = rexp, n = 56) < 56)
-n_func <- function(t, S) sapply(t, function(t) sum(S <= t))
-n_func(t = 56, S = lapply(X = lambda_treatment, FUN = rexp, n = 1))
-vap
-
-sum
-
-
-
-
-
-
-round(unlist(lapply(X = mapply(FUN = rexp, 
-                               n = seizures_baseline, 
-                               rate = lambda_treatment), 
-                    FUN = sum)))
+point_x <- x[intersect] + 
+  ((y2[intersect] - y1[intersect]) / (slope_1 - slope_2))
+point_y <- y1[intersect] + (slope_1 * (point_x - x[intersect]))

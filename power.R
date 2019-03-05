@@ -87,32 +87,47 @@ power <- calculate_power(data = NULL)
 # save(list = "power_100", file = "Data/power_100.RData", envir = .GlobalEnv)
 power
 
-#### Plots ####
+# Plots and calculation of intersect with power = 0.8 ##########################
 x <- seq(from = 0, to = 0.75, by = 0.05)
+y1 <- power$neg_bin_p_value_treatment
+y2  <- rep(0.8, length(x))
+
+above <- y1 > y2
+intersect <- which(diff(above) != 0)
+
+slope_1 <- (y1[intersect + 1] - y1[intersect]) / 
+  (x[intersect + 1] - x[intersect])
+slope_2 <- (y2[intersect + 1] - y2[intersect]) /
+  (x[intersect + 1] - x[intersect])
+
+point_x <- x[intersect] + 
+  ((y2[intersect] - y1[intersect]) / (slope_1 - slope_2))
+point_y <- y1[intersect] + (slope_1 * (point_x - x[intersect]))
 
 # jpeg(filename = "plots/line_400.jpeg")
 ggplot(data = power) + 
   geom_line(mapping = aes(x = x, 
                           y = neg_bin_p_value_treatment, 
                           color = "Negative Binomial")) + 
-  geom_line(mapping = aes(x = x, 
-                          y = logrank_p_value, color = "Log Rank")) + 
-  geom_line(mapping = aes(x = x, 
-                          y = cox_p_value_treatment, color = "Cox (full)")) + 
-  geom_line(mapping = aes(x = x, 
-                          y = cox3_p_value_treatment, 
-                          color = "Cox (only treatment)")) + 
-  geom_line(mapping = aes(x = x, 
-                          y = logit_p_value_treatment, color = "Logit")) + 
-  geom_line(mapping = aes(x = x, 
-                          y = chi_square_p_value, color = "Chi Square")) + 
-  geom_line(mapping = aes(x = x, y = 0.05, color = "0.05")) + 
-  geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) + 
+  geom_line(mapping = aes(x = x,
+                          y = logrank_p_value, color = "Log Rank")) +
+  geom_line(mapping = aes(x = x,
+                          y = cox_p_value_treatment, color = "Cox (full)")) +
+  geom_line(mapping = aes(x = x,
+                          y = cox3_p_value_treatment,
+                          color = "Cox (only treatment)")) +
+  geom_line(mapping = aes(x = x,
+                          y = logit_p_value_treatment, color = "Logit")) +
+  geom_line(mapping = aes(x = x,
+                          y = chi_square_p_value, color = "Chi Square")) +
+  geom_line(mapping = aes(x = x, y = 0.05, color = "0.05")) +
+  geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) +
   geom_line(mapping = aes(x = x, y = 0.95, color = "0.95")) + 
-  scale_color_viridis_d(name = "Method") + 
-  xlab(label = "delta") + 
-  ylab(label = "Power") + 
-  ggtitle(label = "N = 100")
+  geom_point(mapping = aes(x = point_x, y = point_y, color = "Intersect")) + 
+  scale_color_viridis_d(name = "Method") +
+  xlab(label = "delta") +
+  ylab(label = "Power") +
+  ggtitle(label = "N = 400")
 # dev.off()
 
 epi_seizures <- ggplot(data = epilepsy) + 
@@ -145,3 +160,14 @@ grid.arrange(epi_seizures, dat_seizures, epi_time, dat_time, epi_point,
              dat_point)
 # dev.off()
 
+
+power$neg_bin_p_value_treatment
+identify(x = x, y = power$neg_bin_p_value_treatment)
+x[which(power$neg_bin_p_value_treatment == 0.8)]
+power$neg_bin_p_value_treatment[which(x == 0.8)]
+intersect(x = x, y = power$neg_bin_p_value_treatment)
+
+plot(x = x, y = power$neg_bin_p_value_treatment, type = "b")
+abline(h = 0.8, col = 2)
+
+locator(n = 1)
