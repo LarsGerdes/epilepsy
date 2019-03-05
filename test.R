@@ -34,26 +34,31 @@ ggplot() +
 lambda_treatment <- lambda_baseline / 
   (exp((as.numeric(treatment) - 1) * delta + 0.2) * 28)
 seizures_treatment <- c()
-time_baseline <- c()
+time_baseline <- time_study
 for (i in 1:n) {
   count <- 0
   time <- 0
-  while (time < 56) {
-    count <- count + 1
-    time <- time + rexp(n = 1, rate = lambda_treatment[i])
+  while (time < time_study[i]) {
     if (count == seizures_baseline[i]) {
       time_baseline[i] <- time
     }
+    time <- time + rexp(n = 1, rate = lambda_treatment[i])
+    count <- count + 1
   }
   seizures_treatment[i] <- count - 1
-  if (is.na(time_baseline[i])) {
-    time_baseline[i] <- time_study[i]
-  }
 }
-time_baseline <- round(if_else(condition = time_baseline < time_study,
-                               true = time_baseline, false = time_study))
+ggplot() + 
+  geom_density(mapping = aes(x = time_baseline, colour = 1, fill = 2)) + 
+  guides(colour = FALSE, fill = FALSE)
+any(time_baseline >= time_study)
+
 summary(seizures_treatment)
 summary(round(time_baseline))
+
+any(time_baseline > time_study)
+summary(epilepsy$seizures_treatment)
+summary(epilepsy$time_baseline)
+cor(seizures_treatment, time_study)
 
 if (is.na(time_baseline[i])) {
   time_baseline[i] <- time_study[i]
@@ -61,14 +66,17 @@ if (is.na(time_baseline[i])) {
 if (time_baseline[i] > time_study[i]) {
   time_baseline[i] <- time_study[i]
 }
-
+time_baseline <- round(if_else(condition = time_baseline < time_study,
+                               true = time_baseline, false = time_study))
 
 ggplot() + 
   geom_density(mapping = aes(x = seizures_treatment, colour = 1, fill = 2)) + 
   guides(colour = FALSE, fill = FALSE)
+
 ggplot() + 
-  geom_density(mapping = aes(x = time_baseline, colour = 1, fill = 2)) + 
-  guides(colour = FALSE, fill = FALSE)
+  geom_point(mapping = aes(x = time_study, y = seizures_treatment, 
+                           colour = 1)) + 
+  guides(colour = FALSE)
 
 # seizures_treatment
 lambda_treatment = lambda_baseline / 

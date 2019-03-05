@@ -32,28 +32,24 @@ replicate_data <- function(n = 200, delta = 0.13){
   lambda_treatment <- output$lambda_baseline / 
     (exp((as.numeric(output$treatment) - 1) * delta + 0.2) * 28)
   seizures_treatment <- c()
-  time_baseline <- c()
+  time_baseline <- output$time_study
   for (i in 1:n) {
     count <- 0
     time <- 0
-    while (time < 56) {
-      count <- count + 1
-      time <- time + rexp(n = 1, rate = lambda_treatment[i])
+    while (time < output$time_study[i]) {
       if (count == output$seizures_baseline[i]) {
         time_baseline[i] <- time
       }
+      time <- time + rexp(n = 1, rate = lambda_treatment[i])
+      count <- count + 1
     }
     seizures_treatment[i] <- count - 1
-    if (is.na(time_baseline[i])) {
-      time_baseline[i] <- output$time_study[i]
-    }
   }
   mutate(
     .data = output,
     seizures_treatment = seizures_treatment,
-    time_baseline = round(if_else(condition = time_baseline < time_study,
-                                  true = time_baseline, 
-                                  false = time_study)),
+    time_baseline = round(time_baseline),
+    
     # censor
     censor = as.factor(if_else(
       condition = seizures_treatment < seizures_baseline,
@@ -78,9 +74,12 @@ replicate_data <- function(n = 200, delta = 0.13){
 }
 
 set.seed(seed = 42)
-dataset <- replicate_data(n = 200, delta = 0.13)
+dataset <- replicate_data(n = 400, delta = 0.13)
 dataset
 summary(object = dataset)
+all(dataset$time_baseline <= dataset$time_study)
+
+all(dataset$seizures_baseline > dataset$seizures_treatment)
 
 # Visualization
 # pdf(file = "plots/replicated_data.pdf", width = 13)

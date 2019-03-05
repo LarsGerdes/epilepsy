@@ -43,20 +43,12 @@ sampling <- function(x, n, delta) {
   }
   
   # Log-Rank und Cox
-  log_rank <- function(data) {
-    surv_diff <- survdiff(
-      formula = Surv(time = data$time_baseline, 
-                     event = data$censor) ~ data$treatment
-    )
-    tibble(logrank_p_value = 1 - pchisq(surv_diff$chisq, df = 1))
-  }
-  
-  cox_reg <- function(data) {
+  survival <- function(data) {
     survtime <- Surv(time = data$time_baseline, 
-                        event = data$censor, type = "right")
+                     event = data$censor, type = "right")
+    surv_diff <- survdiff(formula = survtime ~ data$treatment)
     cox_summary <- summary(object = cox <- coxph(
-      formula =  survtime~ 
-        data$treatment + data$seizures_baseline
+      formula =  survtime ~ data$treatment + data$seizures_baseline
     ))
     
 
@@ -70,6 +62,7 @@ sampling <- function(x, n, delta) {
     ))
     
     tibble(
+      logrank_p_value = 1 - pchisq(surv_diff$chisq, df = 1),
       cox_p_value_treatment = cox_summary$coefficients[1, 5], 
       cox_p_value_seizures_baseline = cox_summary$coefficients[2,5], 
       cox_HR_treatment = cox_summary$coefficients[1,2],  #hazard ratio
@@ -143,71 +136,74 @@ sampling <- function(x, n, delta) {
   
   # function which generates a dataset 
   # and extracts all relevant information in form of a dataframe
-  gen_dat <- function(n, delta = delta){
-    tibble(
+  replicate_data <- function(n, delta){
+    output <- tibble(
       
-      # subject
-      subject = 1:n, 
-      
-      # treatment
-      treatment = rbinom(n = n, size = 1, prob = 0.5), 
-      
-      # seizures_baseline with individual lambda and more than three seizures.
-      lambda_baseline = rgamma(n = n, shape = 5, scale = 2), 
+      # seizures_baseline with individual lambda and more than three seizures
+      lambda_baseline = rgamma(n = n * 1.5, shape = 5, scale = 2),
       seizures_baseline = sapply(X = lambda_baseline, FUN = rpois, n = 1)
     ) %>% 
       filter(seizures_baseline > 3) %>% 
-      
+      slice(1:n) %>% 
       mutate(
         
+        # treatment
+        treatment = rbinom(n = n, size = 1, prob = 0.5),  
+        
         # time_study
-        time_study = round(pmin(rexp(n = length(subject),
+        time_study = round(pmin(rexp(n = n,
                                      rate = -log(0.8) / 56), 56)),
         time_study = if_else(condition = time_study != 0, true = time_study, 
-                             false = 1),
-        
-        # seizures_treatment
-        seizures_treatment = sapply(X = exp(
-          log(lambda_baseline * time_study / 28) - (treatment * delta + 0.2) 
-        ), FUN = rpois, n = 1),
+                             false = 1), 
         
         # drop_out
-        drop_out = if_else(condition = time_study == 56, true = 0, false = 1), 
-        
-        # time_baseline with individual lambda.
-        lambda_time = if_else(condition = seizures_treatment != 0, 
-                              true = seizures_treatment / time_study, 
-                              false = 1e-10), 
-        time_baseline = round(unlist(lapply(X = mapply(FUN = rexp, 
-                                                       n = seizures_baseline, 
-                                                       rate = time_study), 
-                                            FUN = sum))),
-        time_baseline = if_else(condition = time_baseline <= time_study, 
-                                true = time_baseline, false = time_study),
-        time_baseline = if_else(condition = time_baseline > 0, 
-                                true = time_baseline, false = 1),
-        
-        # censor
-        censor = if_else(
-          condition = seizures_treatment < seizures_baseline, 
-          true = 0, 
-          false = 1
-        ), 
-        
-        # response
-        response = if_else(
-          condition = seizures_treatment <= seizures_baseline & 
-            drop_out == 0,
-          true = 1,
-          false = 0
-        ) 
+        drop_out = if_else(condition = time_study == 56, true = 0, false = 1)
       )
+    # seizures_baseline and time_baseline with individual lambda
+    lambda_treatment <- output$lambda_baseline / 
+      (exp(output$treatment * delta + 0.2) * 28)
+    seizures_treatment <- c()
+    time_baseline <- output$time_study
+    for (i in 1:n) {
+      count <- 0
+      time <- 0
+      while (time < output$time_study[i]) {
+        if (count == output$seizures_baseline[i]) {
+          time_baseline[i] <- time
+        }
+        time <- time + rexp(n = 1, rate = lambda_treatment[i])
+        count <- count + 1
+      }
+      seizures_treatment[i] <- count - 1
+    }
+    mutate(
+      .data = output,
+      seizures_treatment = seizures_treatment,
+      time_baseline = round(time_baseline),
+      # censor
+      censor = if_else(
+        condition = seizures_treatment < seizures_baseline,
+        true = 0,
+        false = 1
+      ),
+      
+      # response
+      response = if_else(
+        condition = seizures_treatment <= seizures_baseline & drop_out == 0,
+        true = 1,
+        false = 0
+      ),
+      
+      # Log-transformations
+      seizures_baseline_log = log(seizures_baseline),
+      time_study_log = log(time_study)
+    )
   }
   
-  data <- gen_dat(n = n, delta = delta)
+  data <- replicate_data(n = n, delta = delta)
   bind_cols(tibble(delta = delta), tibble(n = n), 
-            negative_binomial(data = data), log_rank(data = data), 
-            cox_reg(data = data), logit_reg(data = data), chisq(data = data))
+            negative_binomial(data = data), survival(data = data), 
+            logit_reg(data = data), chisq(data = data))
 }
 
 #### Execution ####
