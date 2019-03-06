@@ -3,14 +3,14 @@ n <- 400
 delta <- 0.13
 
 # seizures_baseline with individual lambda and more than three seizures. #######
-tib <- tibble(
+output <- tibble(
   lambda_baseline = rgamma(n = n * 1.5, shape = 5, scale = 2),
   seizures_baseline = sapply(X = lambda_baseline, FUN = rpois, n = 1)
 ) %>% 
   filter(seizures_baseline > 3) %>% 
   slice(1:n)
-lambda_baseline <- tib$lambda_baseline
-seizures_baseline <- tib$seizures_baseline
+lambda_baseline <- output$lambda_baseline
+seizures_baseline <- output$seizures_baseline
 ggplot() + 
   geom_density(mapping = aes(x = seizures_baseline, colour = 1, fill = 2)) + 
   guides(colour = FALSE, fill = FALSE)
@@ -47,9 +47,81 @@ for (i in 1:n) {
   }
   seizures_treatment[i] <- count - 1
 }
+
+duration_times <- lapply(
+  X = mapply(FUN = rexp, n = time_study, rate = lambda_treatment), 
+  FUN = cumsum
+)
+seizures_treatment <- mapply(
+  FUN = function(x, y) {length(x[x < y])}, 
+  x = duration_times, 
+  y = time_study
+) 
+time_baseline <- round(unlist(lapply(
+  X = mapply(FUN = function(x, y) {x[1:y]}, x = duration_times, 
+             y = seizures_baseline), 
+  FUN = function(x) {x[length(x)]}))
+)
+time_baseline <- if_else(condition = !is.na(time_baseline), 
+                         true = time_baseline, false = time_study)
+time_baseline <- if_else(condition = time_baseline <= time_study, 
+                         true = time_baseline, false = time_study)
+length(duration_times[[10]][duration_times[[10]] < time_study[10]])
+seizures_treatment[[10]]
+
+summary(object = seizures_treatment)
+summary(object = epilepsy$seizures_treatment)
+summary(time_baseline)
+summary(object = epilepsy$time_baseline)
 ggplot() + 
   geom_density(mapping = aes(x = time_baseline, colour = 1, fill = 2)) + 
   guides(colour = FALSE, fill = FALSE)
+ggplot() + 
+  geom_density(mapping = aes(x = seizures_treatment, colour = 1, fill = 2)) + 
+  guides(colour = FALSE, fill = FALSE)
+ggplot() + 
+  geom_point(mapping = aes(x = time_study, y = seizures_treatment, 
+                           colour = 1)) + 
+  guides(colour = FALSE)
+seizures_treatment[26]
+time_baseline[26]
+time_baseline[[400]][length(time_baseline[[400]])]
+seizures_treatment <- mapply(
+  FUN = function(x, y) {length(x[x < y])}, 
+  x = time, 
+  y = time_study
+)
+time[[400]][1:seizures_baseline[400]]
+time_baseline <- round(unlist(mapply(
+  FUN = function(x, y) {length(x[x == y])},
+  x = time, 
+  y = seizures_baseline
+)))
+time_baseline <- if_else(condition = time_baseline <= time_study, 
+                         true = time_baseline, false = time_study)
+
+seizures_treatment <- mapply(
+  FUN = function(x, y) {length(x[x < y])}, 
+  x = lapply(X = mapply(FUN = rexp, n = time_study, rate = lambda_treatment), 
+             FUN = cumsum), 
+  y = time_study
+)
+
+
+time_baseline <- round(unlist(lapply(
+  X = mapply(FUN = rexp, n = seizures_baseline, rate = lambda_treatment),
+  FUN = sum
+)))
+time_baseline <- if_else(condition = time_baseline <= time_study, 
+                         true = time_baseline, false = time_study)
+
+seizures_treatment <- mapply(
+  FUN = function(x, y) {length(x[x < y])}, 
+  x = lapply(X = mapply(FUN = rexp, n = time_study, rate = lambda_treatment), 
+             FUN = cumsum), 
+  y = time_study
+)
+
 any(time_baseline >= time_study)
 
 summary(seizures_treatment)
@@ -72,11 +144,6 @@ time_baseline <- round(if_else(condition = time_baseline < time_study,
 ggplot() + 
   geom_density(mapping = aes(x = seizures_treatment, colour = 1, fill = 2)) + 
   guides(colour = FALSE, fill = FALSE)
-
-ggplot() + 
-  geom_point(mapping = aes(x = time_study, y = seizures_treatment, 
-                           colour = 1)) + 
-  guides(colour = FALSE)
 
 # seizures_treatment
 lambda_treatment = lambda_baseline / 

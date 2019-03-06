@@ -6,7 +6,6 @@ library(GGally)
 # Replication
 replicate_data <- function(n = 200, delta = 0.13){
   output <- tibble(
-    
     # seizures_baseline with individual lambda and more than three seizures
     lambda_baseline = rgamma(n = n * 1.5, shape = 5, scale = 2),
     seizures_baseline = sapply(X = lambda_baseline, FUN = rpois, n = 1)
@@ -16,70 +15,75 @@ replicate_data <- function(n = 200, delta = 0.13){
     mutate(
       
       # treatment
-      treatment = as.factor(rbinom(n = n, size = 1, prob = 0.5)),  
+      treatment = rbinom(n = n, size = 1, prob = 0.5),  
      
       # time_study
-      time_study = round(pmin(rexp(n = n,
-                                   rate = -log(0.8) / 56), 56)),
+      time_study = round(pmin(rexp(n = n, rate = -log(0.8) / 56), 56)),
       time_study = if_else(condition = time_study != 0, true = time_study, 
                            false = 1), 
       
       # drop_out
-      drop_out = as.factor(if_else(condition = time_study == 56, true = 0, 
-                                   false = 1))
+      drop_out = if_else(condition = time_study == 56, true = 0, false = 1),
+      
+      # seizures_baseline and time_baseline with individual lambda
+      # lambda
+      lambda_treatment = lambda_baseline / (exp(treatment * delta + 0.2) * 28)
     )
-  # seizures_baseline and time_baseline with individual lambda
-  lambda_treatment <- output$lambda_baseline / 
-    (exp((as.numeric(output$treatment) - 1) * delta + 0.2) * 28)
-  seizures_treatment <- c()
-  time_baseline <- output$time_study
-  for (i in 1:n) {
-    count <- 0
-    time <- 0
-    while (time < output$time_study[i]) {
-      if (count == output$seizures_baseline[i]) {
-        time_baseline[i] <- time
-      }
-      time <- time + rexp(n = 1, rate = lambda_treatment[i])
-      count <- count + 1
-    }
-    seizures_treatment[i] <- count - 1
-  }
+  # duration_times
+  duration_times <- lapply(
+    X = mapply(FUN = rexp, n = output$time_study, 
+               rate = output$lambda_treatment),
+    FUN = cumsum
+  )
   mutate(
     .data = output,
-    seizures_treatment = seizures_treatment,
-    time_baseline = round(time_baseline),
+    # seizures_treatment
+    seizures_treatment = mapply(
+      FUN = function(x, y) {length(x[x < y])},
+      x = duration_times,
+      y = time_study
+    ),
+    # time_baseline
+    time_baseline = round(unlist(lapply(
+      X = mapply(FUN = function(x, y) {x[1:y]}, x = duration_times, 
+                 y = seizures_baseline),
+      FUN = function(x) {x[length(x)]}
+    ))),
+    time_baseline = if_else(condition = !is.na(time_baseline), 
+                            true = time_baseline, false = time_study),
+    time_baseline = if_else(condition = time_baseline <= time_study, 
+                            true = time_baseline, false = time_study),
     
     # censor
-    censor = as.factor(if_else(
-      condition = seizures_treatment < seizures_baseline,
-      true = 0,
-      false = 1
-    )),
+    censor = if_else(condition = seizures_treatment < seizures_baseline,
+                     true = 0, false = 1),
     
     # response
-    response = as.factor(if_else(
+    response = if_else(
       condition = seizures_treatment <= seizures_baseline & drop_out == 0,
       true = 1,
       false = 0
-    )),
+    ),
     
     # Log-transformations
     seizures_baseline_log = log(seizures_baseline),
-    time_study_log = log(time_study)
+    time_study_log = log(time_study),
+    
+    # Factors for visualization
+    treatment = as.factor(treatment),
+    drop_out = as.factor(drop_out),
+    censor = as.factor(censor),
+    response = as.factor(response)
   ) %>%
     
     # Deleting columns of lambdas
-    select(-lambda_baseline)
+    select(-lambda_baseline, -lambda_treatment)
 }
 
 set.seed(seed = 42)
 dataset <- replicate_data(n = 400, delta = 0.13)
 dataset
 summary(object = dataset)
-all(dataset$time_baseline <= dataset$time_study)
-
-all(dataset$seizures_baseline > dataset$seizures_treatment)
 
 # Visualization
 # pdf(file = "plots/replicated_data.pdf", width = 13)
