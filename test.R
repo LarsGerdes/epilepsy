@@ -107,6 +107,47 @@ ggplot() +
   guides(colour = FALSE, fill = FALSE)
 
 # Power = 0.8 ##################################################################
+x <- seq(from = 0, to = 0.75, by = 0.05)
+power_0.8 <- function(power = 0.8, x = x, data = power) {
+  
+  index <- 1:ncol(data)
+  
+  # Vectors are split into values above and below 0.8
+  intersect <- apply(X = diff(data > power) != 0, MARGIN = 2, FUN = which)
+  
+  # Point below the split.
+  y1 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i], i]}))
+  # Point above the split.
+  y2 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i] + 1, i]}))
+  
+  # Slope of intersection
+  slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
+  
+  # Intersection
+  data.frame(x_values = x[intersect] + ((0.8 - y1) / (slope - 0)))
+}
+power_0.8(power = 0.8, x = x, data = power)
+cat("Power =", power)
+index <- 1:ncol(power)
+intersect <- apply(X = diff(power > 0.8) != 0, MARGIN = 2, FUN = which)
+y1 <- unlist(sapply(X = index, FUN = function(i) {power[intersect[i], i]}))
+n <- 1:ncol(power)
+y  <- rep(0.8, length(x))
+y <- 0.8
+1:n
+dim(power)
+dim(tibble(1:ncol(power)))
+intersect <- apply(X = diff(power > 0.8) != 0, MARGIN = 2, FUN = which)
+y1 <- sapply(X = 1:length(intersect), 
+            FUN = function(x) {power[intersect[x], x]})
+power[intersect[1], 1]
+y2 <- unlist(sapply(X = 1:n, FUN = function(x) {power[intersect[x] + 1, x]}))
+slope_1 <- (y2 - y1) / (x[intersect + 1] - x[intersect])
+slope_2 <- rep(0, times = ncol(power))
+slope_2 <- 0
+point_x <- x[intersect] + 
+  ((0.8 - y1) / (slope - 0))
+
 y <- power$neg_bin_p_value_treatment
 y1 <- power$neg_bin_p_value_treatment
 y2  <- rep(0.8, length(x))

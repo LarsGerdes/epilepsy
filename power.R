@@ -87,23 +87,29 @@ power <- calculate_power(data = NULL)
 # save(list = "power_100", file = "Data/power_100.RData", envir = .GlobalEnv)
 power
 
-# Plots and calculation of intersect with power = 0.8 ##########################
+# Calculate values of x-axis for a specific power ##############################
 x <- seq(from = 0, to = 0.75, by = 0.05)
-y1 <- power$neg_bin_p_value_treatment
-y2  <- rep(0.8, length(x))
+calculate_x_values <- function(power = 0.8, x = x, data = power) {
+  
+  index <- 1:ncol(data)
+  
+  # Vectors are split into values above and below a power
+  intersect <- apply(X = diff(data > power) != 0, MARGIN = 2, FUN = which)
+  
+  # Point below the split.
+  y1 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i], i]}))
+  # Point above the split.
+  y2 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i] + 1, i]}))
+  
+  # Slope of intersection
+  slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
+  
+  # Intersection
+  data.frame(x_values = x[intersect] + ((0.8 - y1) / (slope - 0)))
+}
+calculate_x_values(power = 0.8, x = x, data = power)
 
-above <- y1 > y2
-intersect <- which(diff(above) != 0)
-
-slope_1 <- (y1[intersect + 1] - y1[intersect]) / 
-  (x[intersect + 1] - x[intersect])
-slope_2 <- (y2[intersect + 1] - y2[intersect]) /
-  (x[intersect + 1] - x[intersect])
-
-point_x <- x[intersect] + 
-  ((y2[intersect] - y1[intersect]) / (slope_1 - slope_2))
-point_y <- y1[intersect] + (slope_1 * (point_x - x[intersect]))
-
+# Plots ########################################################################
 # jpeg(filename = "plots/line_400.jpeg")
 ggplot(data = power) + 
   geom_line(mapping = aes(x = x, 
@@ -123,11 +129,10 @@ ggplot(data = power) +
   geom_line(mapping = aes(x = x, y = 0.05, color = "0.05")) +
   geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) +
   geom_line(mapping = aes(x = x, y = 0.95, color = "0.95")) + 
-  geom_point(mapping = aes(x = point_x, y = point_y, color = "Intersect")) + 
   scale_color_viridis_d(name = "Method") +
   xlab(label = "delta") +
   ylab(label = "Power") +
-  ggtitle(label = "N = 400")
+  ggtitle(label = "N = 200")
 # dev.off()
 
 epi_seizures <- ggplot(data = epilepsy) + 
