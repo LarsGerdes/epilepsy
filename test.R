@@ -1,5 +1,5 @@
 # Test #########################################################################
-n <- 400
+n <- 200
 delta <- 0.13
 
 # seizures_baseline with individual lambda and more than three seizures. #######
@@ -49,11 +49,11 @@ for (i in 1:n) {
 }
 
 duration_times <- lapply(
-  X = mapply(FUN = rexp, n = time_study, rate = lambda_treatment), 
+  X = lapply(X = lambda_treatment, FUN = rexp, n = 60), 
   FUN = cumsum
 )
 seizures_treatment <- mapply(
-  FUN = function(x, y) {length(x[x < y])}, 
+  FUN = function(x, y) {length(x[x <= y])}, 
   x = duration_times, 
   y = time_study
 ) 
@@ -62,12 +62,8 @@ time_baseline <- round(unlist(lapply(
              y = seizures_baseline), 
   FUN = function(x) {x[length(x)]}))
 )
-time_baseline <- if_else(condition = !is.na(time_baseline), 
-                         true = time_baseline, false = time_study)
 time_baseline <- if_else(condition = time_baseline <= time_study, 
                          true = time_baseline, false = time_study)
-length(duration_times[[10]][duration_times[[10]] < time_study[10]])
-seizures_treatment[[10]]
 
 summary(object = seizures_treatment)
 summary(object = epilepsy$seizures_treatment)

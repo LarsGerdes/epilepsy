@@ -29,17 +29,16 @@ replicate_data <- function(n = 200, delta = 0.13){
       # lambda
       lambda_treatment = lambda_baseline / (exp(treatment * delta + 0.2) * 28)
     )
-  # duration_times
+  # List with duration_times between seizures of each patient 
   duration_times <- lapply(
-    X = mapply(FUN = rexp, n = output$time_study, 
-               rate = output$lambda_treatment),
+    X = lapply(X = output$lambda_treatment, FUN = rexp, n = 60), 
     FUN = cumsum
   )
   mutate(
     .data = output,
     # seizures_treatment
     seizures_treatment = mapply(
-      FUN = function(x, y) {length(x[x < y])},
+      FUN = function(x, y) {length(x[x <= y])},
       x = duration_times,
       y = time_study
     ),
@@ -49,8 +48,6 @@ replicate_data <- function(n = 200, delta = 0.13){
                  y = seizures_baseline),
       FUN = function(x) {x[length(x)]}
     ))),
-    time_baseline = if_else(condition = !is.na(time_baseline), 
-                            true = time_baseline, false = time_study),
     time_baseline = if_else(condition = time_baseline <= time_study, 
                             true = time_baseline, false = time_study),
     
@@ -81,7 +78,7 @@ replicate_data <- function(n = 200, delta = 0.13){
 }
 
 set.seed(seed = 42)
-dataset <- replicate_data(n = 400, delta = 0.13)
+dataset <- replicate_data(n = 200, delta = 0.13)
 dataset
 summary(object = dataset)
 

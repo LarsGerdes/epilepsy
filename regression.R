@@ -1,141 +1,14 @@
-#### Regression ####
+# Regression ###################################################################
 # Packages
 library(MASS)
 library(tidyverse)
 library(survival)
 library(parallel)
 
-
-#### Function for simulation and regression ####
+# Function for simulation and regression with a specific n and delta ###########
 sampling <- function(x, n, delta) {
   
-  # negativ binomial model
-  negative_binomial <- function(data) {
-    neg_bin_summary <- summary(object = neg_bin <- glm.nb(
-      formula = data$seizures_treatment ~ data$treatment + 
-        data$seizures_baseline + offset(log(data$time_study))
-      ))
-    
-    neg_bin_summary2 <- summary(object = neg_bin2 <- glm.nb(
-      formula = data$seizures_treatment ~ data$treatment + 
-        log(data$seizures_baseline) + offset(log(data$time_study))
-    ))
-    
-    tibble(
-      neg_bin_coefficient_treatment = exp(neg_bin$coefficients[2]),
-      neg_bin_coefficient_seizures_baseline = exp(neg_bin$coefficients[3]),
-      neg_bin_p_value_treatment = neg_bin_summary$coefficients[2, 4],
-      neg_bin_p_value_seizures_baseline = neg_bin_summary$coefficients[3, 4],
-      neg_bin_conf_IRR_low = NA,
-      neg_bin_conf_IRR_up = NA,
-      neg_bin_se_treatment = neg_bin_summary$coefficients[2,2],
-      
-      
-      neg_bin_log_coefficient_treatment = exp(neg_bin2$coefficients[2]),
-      neg_bin_log_coefficient_seizures_baseline = exp(neg_bin2$coefficients[3]),
-      neg_bin_log_p_value_treatment = neg_bin_summary2$coefficients[2, 4],
-      neg_bin_log_p_value_seizures_baseline = 
-        neg_bin_summary2$coefficients[3, 4],
-      neg_bin_log_conf_IRR_low = NA,
-      neg_bin_log_conf_IRR_up = NA,
-      neg_bin_log_se_treatment = neg_bin_summary2$coefficients[2,2]
-    )
-  }
-  
-  # Log-Rank und Cox
-  survival <- function(data) {
-    survtime <- Surv(time = data$time_baseline, 
-                     event = data$censor, type = "right")
-    surv_diff <- survdiff(formula = survtime ~ data$treatment)
-    cox_summary <- summary(object = cox <- coxph(
-      formula =  survtime ~ data$treatment + data$seizures_baseline
-    ))
-    
-
-     cox_summary2 <- summary(object = cox2 <- coxph(
-      formula = survtime ~ data$treatment + log(data$seizures_baseline)
-    ))
-    
-    # only treatment, surv nur einmal berecnen
-    cox_summary3 <- summary(object = cox3 <- coxph(
-      formula = survtime ~ data$treatment
-    ))
-    
-    tibble(
-      logrank_p_value = 1 - pchisq(surv_diff$chisq, df = 1),
-      cox_p_value_treatment = cox_summary$coefficients[1, 5], 
-      cox_p_value_seizures_baseline = cox_summary$coefficients[2,5], 
-      cox_HR_treatment = cox_summary$coefficients[1,2],  #hazard ratio
-      cox_HR_seizures_baseline = cox_summary$coefficients[2, 2],
-      cox_conf_treatment_low = NA,
-      cox_conf_treatment_up = NA,
-      cox_se_treatment = cox_summary$coefficients[1,3],
-      cox_wald = cox$wald.test,
-      
-      cox_p_value_log_treatment = cox_summary2$coefficients[1, 5], 
-      cox_p_value_log_seizures_baseline = cox_summary2$coefficients[2,5], 
-      cox_HR_log_treatment = cox_summary2$coefficients[1,2],       
-      cox_HR_log_seizures_baseline = cox_summary2$coefficients[2, 2],
-      cox_log_conf_treatment_low = NA,
-      cox_log_conf_treatment_up = NA,
-      cox_log_se_treatment = cox_summary2$coefficients[1,3],
-      cox_log_wald = cox2$wald.test,
-      
-      cox3_p_value_treatment = cox_summary3$coefficients[1, 5],
-      cox3_HR_treatment = cox_summary3$coefficients[1, 2],
-      cox3_conf_treatment_low = NA,
-      cox3_conf_treatment_up = NA,
-      cox3_se_treatment = cox_summary3$coefficients[1,3],
-      cox3_wald = cox3$wald.test
-      
-    )
-    
-    
-  }
-  
-  
-  # Logit und Chi^2
-  logit_reg <- function(data) {
-    logit_summary <- summary(object = logit <- glm(
-      formula = data$response ~ data$treatment + data$seizures_baseline,
-      family = binomial(link = "logit")
-    ))
-    
-    logit_summary2 <- summary(object = logit2 <- glm(
-      formula = data$response ~ data$treatment + log(data$seizures_baseline),
-      family = binomial(link = "logit")
-    ))
- 
-    tibble(
-      
-      logit_p_value_treatment = logit_summary$coefficients[2, 4],
-      logit_p_value_seizures_baseline = logit_summary$coefficients[3, 4],
-      oddsratio_treatment = exp(logit$coefficients[2]),
-      oddsratio_seizures_baseline = exp(logit$coefficients[3]),
-      conf_treatment_low = NA,
-      conf_treatment_up = NA,
-      logit_se_treatment = logit_summary$coefficients[2, 2],
-      
-      logit_p_value_log_treatment = logit_summary2$coefficients[2, 4],
-      logit_p_value_log_seizures_baseline = logit_summary2$coefficients[3, 4],
-      oddsratio_log_treatment = exp(logit2$coefficients[2]),
-      oddsratio_log_seizures_baseline = exp(logit2$coefficients[3]),
-      conf_log_treatment_low = NA,
-      conf_log_treatment_up = NA,
-      logit_log_se_treatment = logit_summary2$coefficients[2, 2]
-    )
-    
-  }
-  
-  chisq <- function(data) {
-    chisq <- chisq.test(x = data$treatment, y = data$response)
-    tibble(
-      chi_square_p_value = chisq$p.value
-    )
-  }
-  
-  # function which generates a dataset 
-  # and extracts all relevant information in form of a dataframe
+  # function which generates a dataset
   replicate_data <- function(n = 200, delta = 0.13){
     output <- tibble(
       # seizures_baseline with individual lambda and more than three seizures
@@ -161,17 +34,16 @@ sampling <- function(x, n, delta) {
         # lambda
         lambda_treatment = lambda_baseline / (exp(treatment * delta + 0.2) * 28)
       )
-    # duration_times
+    # List with duration_times between seizures of each patient 
     duration_times <- lapply(
-      X = mapply(FUN = rexp, n = output$time_study, 
-                 rate = output$lambda_treatment),
+      X = lapply(X = output$lambda_treatment, FUN = rexp, n = 60), 
       FUN = cumsum
     )
     mutate(
       .data = output,
       # seizures_treatment
       seizures_treatment = mapply(
-        FUN = function(x, y) {length(x[x < y])},
+        FUN = function(x, y) {length(x[x <= y])},
         x = duration_times,
         y = time_study
       ),
@@ -181,8 +53,6 @@ sampling <- function(x, n, delta) {
                    y = seizures_baseline),
         FUN = function(x) {x[length(x)]}
       ))),
-      time_baseline = if_else(condition = !is.na(time_baseline), 
-                              true = time_baseline, false = time_study),
       time_baseline = if_else(condition = time_baseline <= time_study, 
                               true = time_baseline, false = time_study),
       
@@ -203,91 +73,189 @@ sampling <- function(x, n, delta) {
     )
   }
   
+  # function for different regression methods
+  regress <- function(data) {
+    # negativ binomial model
+    neg_bin_summary <- summary(object = neg_bin <- glm.nb(
+      formula = data$seizures_treatment ~ 
+        data$treatment + data$seizures_baseline + offset(data$time_study_log)
+      ))
+    # neg bin seizures_baseline_log
+    neg_bin_summary2 <- summary(object = neg_bin2 <- glm.nb(
+      formula = data$seizures_treatment ~ data$treatment + 
+        data$seizures_baseline_log + offset(data$time_study_log)
+    ))
+    
+    # survival
+    survtime <- Surv(time = data$time_baseline, event = data$censor)
+    # log rank
+    surv_diff <- survdiff(formula = survtime ~ data$treatment)
+    # cox
+    cox_summary <- summary(object = cox <- coxph(
+      formula =  survtime ~ data$treatment + data$seizures_baseline
+    ))
+    # cox seizures_baseline_log
+    cox_summary2 <- summary(object = cox2 <- coxph(
+      formula = survtime ~ data$treatment + data$seizures_baseline_log
+    ))
+    # cox only treatment
+    cox_summary3 <- summary(object = cox3 <- coxph(
+      formula = survtime ~ data$treatment
+    ))
+    
+    # binary
+    # logit
+    logit_summary <- summary(object = logit <- glm(
+      formula = data$response ~ data$treatment + data$seizures_baseline,
+      family = binomial(link = "logit")
+    ))
+    # logit seizures_baseline_log
+    logit_summary2 <- summary(object = logit2 <- glm(
+      formula = data$response ~ data$treatment + data$seizures_baseline_log,
+      family = binomial(link = "logit")
+    ))
+    # chi square
+    chisq <- chisq.test(x = data$treatment, y = data$response)
+    
+    tibble(
+      # negativ binomial model
+      neg_bin_coefficient_treatment = exp(neg_bin$coefficients[2]),
+      neg_bin_coefficient_seizures_baseline = exp(neg_bin$coefficients[3]),
+      neg_bin_p_value_treatment = neg_bin_summary$coefficients[2, 4],
+      neg_bin_p_value_seizures_baseline = neg_bin_summary$coefficients[3, 4],
+      neg_bin_conf_IRR_low = NA,
+      neg_bin_conf_IRR_up = NA,
+      neg_bin_se_treatment = neg_bin_summary$coefficients[2,2],
+      # neg bin seizures_baseline_log
+      neg_bin_log_coefficient_treatment = exp(neg_bin2$coefficients[2]),
+      neg_bin_log_coefficient_seizures_baseline = exp(neg_bin2$coefficients[3]),
+      neg_bin_log_p_value_treatment = neg_bin_summary2$coefficients[2, 4],
+      neg_bin_log_p_value_seizures_baseline = 
+        neg_bin_summary2$coefficients[3, 4],
+      neg_bin_log_conf_IRR_low = NA,
+      neg_bin_log_conf_IRR_up = NA,
+      neg_bin_log_se_treatment = neg_bin_summary2$coefficients[2,2],
+      
+      # survival
+      # log rank
+      logrank_p_value = 1 - pchisq(surv_diff$chisq, df = 1),
+      # cox
+      cox_p_value_treatment = cox_summary$coefficients[1, 5], 
+      cox_p_value_seizures_baseline = cox_summary$coefficients[2,5], 
+      cox_HR_treatment = cox_summary$coefficients[1,2],  #hazard ratio
+      cox_HR_seizures_baseline = cox_summary$coefficients[2, 2],
+      cox_conf_treatment_low = NA,
+      cox_conf_treatment_up = NA,
+      cox_se_treatment = cox_summary$coefficients[1,3],
+      cox_wald = cox$wald.test,
+      # cox seizures_baseline_log
+      cox_p_value_log_treatment = cox_summary2$coefficients[1, 5], 
+      cox_p_value_log_seizures_baseline = cox_summary2$coefficients[2,5], 
+      cox_HR_log_treatment = cox_summary2$coefficients[1,2],       
+      cox_HR_log_seizures_baseline = cox_summary2$coefficients[2, 2],
+      cox_log_conf_treatment_low = NA,
+      cox_log_conf_treatment_up = NA,
+      cox_log_se_treatment = cox_summary2$coefficients[1,3],
+      cox_log_wald = cox2$wald.test,
+      # cox only treatment
+      cox3_p_value_treatment = cox_summary3$coefficients[1, 5],
+      cox3_HR_treatment = cox_summary3$coefficients[1, 2],
+      cox3_conf_treatment_low = NA,
+      cox3_conf_treatment_up = NA,
+      cox3_se_treatment = cox_summary3$coefficients[1,3],
+      cox3_wald = cox3$wald.test,
+      
+      # binary
+      # logit
+      logit_p_value_treatment = logit_summary$coefficients[2, 4],
+      logit_p_value_seizures_baseline = logit_summary$coefficients[3, 4],
+      oddsratio_treatment = exp(logit$coefficients[2]),
+      oddsratio_seizures_baseline = exp(logit$coefficients[3]),
+      conf_treatment_low = NA,
+      conf_treatment_up = NA,
+      logit_se_treatment = logit_summary$coefficients[2, 2],
+      # logit seizures_baseline_log
+      logit_p_value_log_treatment = logit_summary2$coefficients[2, 4],
+      logit_p_value_log_seizures_baseline = logit_summary2$coefficients[3, 4],
+      oddsratio_log_treatment = exp(logit2$coefficients[2]),
+      oddsratio_log_seizures_baseline = exp(logit2$coefficients[3]),
+      conf_log_treatment_low = NA,
+      conf_log_treatment_up = NA,
+      logit_log_se_treatment = logit_summary2$coefficients[2, 2],
+      # chi square
+      chi_square_p_value = chisq$p.value
+    )
+  }
+  
   data <- replicate_data(n = n, delta = delta)
-  bind_cols(tibble(delta = delta), tibble(n = n), 
-            negative_binomial(data = data), survival(data = data), 
-            logit_reg(data = data), chisq(data = data))
+  bind_cols(tibble(delta = delta, n = n), regress(data = data))
 }
 
-#### Execution ####
-# without parralel computation for testing
+# Without parralel computation for testing #####################################
 set.seed(42)
-result <- bind_rows(lapply(X = 1:100, FUN = sampling, n = 200, delta = 0.13))
+result <- bind_rows(lapply(X = 1:10, FUN = sampling, n = 200, delta = 0.13))
 result
 
-# parallel computing for faster computation
+# parallel computing for faster computation ####################################
+cl <- makeCluster(spec = detectCores())
+clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
+                                    FUN = require, character.only = TRUE))
 set.seed(seed = 42)
+system.time(results <- bind_rows(
+  parLapply(cl = cl, X = 1:10, fun = sampling, n = 200, delta = 0.13))
+)
+
+# Different Deltas and Ns ######################################################
+# function to simulate for different values of delta
+simulate_data <- function(number_datasets = 10000, n = 200, delta = 0.13, 
+                          name = "n_200_delta_") {
+  if (length(n) > 1) {
+    results <- lapply(X = n, FUN = function(n) {
+      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
+                          n = n, delta = delta))
+    })
+    # save each data.frame with an individual name
+    lapply(X = 1:length(x), FUN = function(i) {
+      nam <- results[[i]]
+      if (nam$n[1] < 1000 & nam$n[1] >= 100) {
+        assign(paste0(name, "0", nam$n[1], sep = ""), value = nam,
+               envir = globalenv())
+      } else if (nam$n[1] < 100) {
+        assign(paste0(name, "00", nam$n[1], sep = ""), value = nam,
+               envir = globalenv())
+      } else {
+        assign(paste0(name, nam$n[1], sep = ""), value = nam,
+               envir = globalenv())
+      }
+    })
+  } 
+  if (length(delta) > 1) {
+    results <- lapply(X = delta, FUN = function(delta) {
+      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
+                          n = n, delta = delta))
+    })
+    # save each data.frame with an individual name
+    lapply(X = 1:length(x), FUN = function(i) {
+      nam <- results[[i]]
+      assign(paste0(name, nam$delta[1], sep = ""), value = nam, 
+             envir = globalenv())
+    })
+  }
+}
+
 cl <- makeCluster(spec = detectCores())
 clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 
-system.time(results <- parLapply(cl = cl, X = 1:2000, fun = sampling, n=200, 
-                                 delta = 1))
-system.time(result_df <- do.call(what = "bind_rows", args = results))
+# To get different n with a fixed delta give a vector for n and for 
+# delta a constant as input. This works also the other way around.
+x <- seq(from = 0, to = 0.5, by = 0.05)
+x <- seq(from = 50, to = 1000, by = 50)
+system.time(simulate_data(number_datasets = 10, delta = x, 
+                          n = 200, name = "n200delta"))
 
-#### Different Deltas ####
-# simulate for different values of delta
-
-resultlist <- list()
-x <- seq(0,0.3,0.05)
-system.time(
-for(i in 1:length(x)){
-  resultlist[[i]] <- parLapply(cl = cl, X = 1:500, fun = sampling, n = 100, 
-                               delta = x[i])
-}
-)
-
-results <- lapply( resultlist, bind_rows ) # each list element is one 
-                                           # result dataframe
-
-for (i in 1:length(x)){  #save each data.frame with an individual name
-  nam <- results[[i]]
-  
-  assign(paste0("Testn100_delta",nam$delta[1],sep=""), nam,envir=globalenv())
-  
-}
-
-rm(results, resultlist,nam,i,x)
+# save dataframes
 save(list = ls(all.names = TRUE), file = "TestN_400.RData", envir = .GlobalEnv) 
 
-load("N_200.RData")
-setwd("C:/Users/Chris_2/Documents/Uni/Master/Stat Praktikum/Ergebnisse")
-save(result_df, file= "n_200_delta_050.RData" )
-
-rm(result_df, results)
-resultdf <- load("delta_030.RData")
-load("delta0.13_n.RData")
 stopCluster(cl = cl)
-
-rm(list=ls(pattern="n100"))
-
-#### Different Ns ####
-# simulate for different values of n
-
-resultlist <- list()
-x <- seq(from = 90, to = 900, length.out = 10)
-system.time(
-  for(i in 1:length(x)){
-    resultlist[[i]] <- parLapply(cl = cl, X = 1:500, fun = sampling, n = x[i], 
-                                 delta = 0.13)
-  }
-)
-
-# a <- results[[3]]
-
-results <- lapply(resultlist, bind_rows) # each list element is one result 
-                                         # dataframe
-for (i in 1:length(x)){
-  nam <- results[[i]]
-  
-  if (nam$n[1] < 100) {
-    assign(paste0("delta0.13_n0",nam$n[1],sep=""), nam,envir=globalenv())
-  } else {
-  assign( paste0("delta0.13_n",nam$n[1],sep=""), nam,envir=globalenv())
-  } # dataframes are not in correct order, therefore use "n" column
-}   # entry for naming.
-
-rm(results, resultlist, nam, i)
-
-save(list = ls(all.names = TRUE), file = "delta0.13_n_2.RData", 
-     envir = .GlobalEnv)
+rm(list = ls(pattern = "n200"))

@@ -127,8 +127,7 @@ ggplot(data = power) +
   geom_line(mapping = aes(x = x,
                           y = chi_square_p_value, color = "Chi Square")) +
   geom_line(mapping = aes(x = x, y = 0.05, color = "0.05")) +
-  geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) +
-  geom_line(mapping = aes(x = x, y = 0.95, color = "0.95")) + 
+  geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) + 
   scale_color_viridis_d(name = "Method") +
   xlab(label = "delta") +
   ylab(label = "Power") +
