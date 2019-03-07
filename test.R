@@ -226,3 +226,50 @@ slope_2 <- (y2[intersect + 1] - y2[intersect]) /
 point_x <- x[intersect] + 
   ((y2[intersect] - y1[intersect]) / (slope_1 - slope_2))
 point_y <- y1[intersect] + (slope_1 * (point_x - x[intersect]))
+# Different Deltas and Ns ######################################################
+# function to simulate for different values of delta
+simulate_data <- function(number_datasets = 10000, n = 200, delta = 0.13, 
+                          name = "n_200_delta_") {
+  if (length(n) > 1) {
+    results <- lapply(X = n, FUN = function(n) {
+      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
+                          n = n, delta = delta))
+    })
+    # save each data.frame with an individual name
+    lapply(X = 1:length(x), FUN = function(i) {
+      nam <- results[[i]]
+      if (nam$n[1] < 1000 & nam$n[1] >= 100) {
+        assign(paste0(name, "0", nam$n[1], sep = ""), value = nam,
+               envir = globalenv())
+      } else if (nam$n[1] < 100) {
+        assign(paste0(name, "00", nam$n[1], sep = ""), value = nam,
+               envir = globalenv())
+      } else {
+        assign(paste0(name, nam$n[1], sep = ""), value = nam,
+               envir = globalenv())
+      }
+    })
+  } 
+  if (length(delta) > 1) {
+    results <- lapply(X = delta, FUN = function(delta) {
+      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
+                          n = n, delta = delta))
+    })
+    # save each data.frame with an individual name
+    lapply(X = 1:length(x), FUN = function(i) {
+      nam <- results[[i]]
+      assign(paste0(name, nam$delta[1], sep = ""), value = nam, 
+             envir = globalenv())
+    })
+  }
+}
+
+results <- lapply(X = x, FUN = function(n) {
+  bind_rows(parLapply(cl = cl, X = 1:10, fun = sampling, 
+                      n = n, delta = 0.13))
+})
+lapply(X = 1:length(x), FUN = function(i) {
+  nam <- results[[i]]
+  assign(paste0("name", nam$n[1], sep = ""), value = nam, 
+         envir = globalenv())
+})

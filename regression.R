@@ -207,8 +207,13 @@ system.time(results <- bind_rows(
 
 # Different Deltas and Ns ######################################################
 # function to simulate for different values of delta
-simulate_data <- function(number_datasets = 10000, n = 200, delta = 0.13, 
-                          name = "n_200_delta_") {
+simulate_data <- function(
+  number_datasets = 10000, # Number of Dataframes 
+  n = 200,                 # Number of observations. If this should be variied, 
+                           # it has to be a vector
+  delta = 0.13,            # If observations are variied, this has to be a 
+                           # constant
+  name = "n_200_delta_") { # Name of data frames
   if (length(n) > 1) {
     results <- lapply(X = n, FUN = function(n) {
       bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
@@ -247,15 +252,13 @@ cl <- makeCluster(spec = detectCores())
 clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 
-# To get different n with a fixed delta give a vector for n and for 
-# delta a constant as input. This works also the other way around.
-x <- seq(from = 0, to = 0.5, by = 0.05)
+x <- seq(from = 0, to = 0.75, by = 0.05)
 x <- seq(from = 50, to = 1000, by = 50)
-system.time(simulate_data(number_datasets = 10, delta = x, 
-                          n = 200, name = "n200delta"))
+system.time(simulate_data(number_datasets = 10, delta = 0, n = x, 
+                          name = "delta0_n"))
 
 # save dataframes
 save(list = ls(all.names = TRUE), file = "TestN_400.RData", envir = .GlobalEnv) 
 
 stopCluster(cl = cl)
-rm(list = ls(pattern = "n200"))
+rm(list = ls(pattern = "name"))
