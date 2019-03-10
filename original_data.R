@@ -1,4 +1,4 @@
-#### Original Dataset ####
+# Original Dataset #############################################################
 # Packages
 library(tidyverse)
 library(GGally)
@@ -28,13 +28,12 @@ epilepsy
 summary(object = epilepsy)
 
 # Visualization
-# pdf(file = "plots/original_data.pdf", width = 13)
 ggpairs(
   data = epilepsy, 
-  columns = 2:9,
+  columns = 1:9,
   mapping = aes(colour = 1), 
-  title = "Original data",
+  title = "Original dataset",
   upper = list(continuous = "points", combo = "box", discrete = "facetbar"),
   lower = list(continuous = "points", combo = "box", discrete = "facetbar")
 )
-# dev.off()
+# ggsave(filename = "original_dataset.svg", path = "plots", scale = 2)

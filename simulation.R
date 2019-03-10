@@ -1,14 +1,80 @@
-# Regression ###################################################################
+# Simulation ###################################################################
 # Packages
 library(MASS)
 library(tidyverse)
 library(survival)
 library(parallel)
+library(GGally)
 
-# Function for simulation and regression with a specific n and delta ###########
-sampling <- function(x, n, delta) {
+# Function to replicate data ###################################################
+replicate_data <- function(n = 200, delta = 0.13){
+  output <- tibble(
+    # seizures_baseline with individual lambda and more than three seizures
+    lambda_baseline = rgamma(n = n * 1.5, shape = 5, scale = 2),
+    seizures_baseline = sapply(X = lambda_baseline, FUN = rpois, n = 1)
+  ) %>% 
+    filter(seizures_baseline > 3) %>% 
+    slice(1:n) %>% 
+    mutate(
+      
+      # treatment
+      treatment = rbinom(n = n, size = 1, prob = 0.5),  
+      
+      # time_study
+      time_study = round(pmin(rexp(n = n, rate = -log(0.8) / 56), 56)),
+      time_study = if_else(condition = time_study != 0, true = time_study, 
+                           false = 1), 
+      
+      # drop_out
+      drop_out = if_else(condition = time_study == 56, true = 0, false = 1),
+      
+      # seizures_baseline and time_baseline with individual lambda
+      # lambda
+      lambda_treatment = lambda_baseline / (exp(treatment * delta + 0.2) * 28)
+    )
+  # List with duration_times between seizures of each patient 
+  duration_times <- lapply(
+    X = lapply(X = output$lambda_treatment, FUN = rexp, n = 60), 
+    FUN = cumsum
+  )
+  mutate(
+    .data = output,
+    # seizures_treatment
+    seizures_treatment = mapply(
+      FUN = function(x, y) {length(x[x <= y])},
+      x = duration_times,
+      y = time_study
+    ),
+    # time_baseline
+    time_baseline = round(unlist(lapply(
+      X = mapply(FUN = function(x, y) {x[1:y]}, x = duration_times, 
+                 y = seizures_baseline),
+      FUN = function(x) {x[length(x)]}
+    ))),
+    time_baseline = if_else(condition = time_baseline <= time_study, 
+                            true = time_baseline, false = time_study),
+    
+    # censor
+    censor = if_else(condition = seizures_treatment < seizures_baseline,
+                     true = 0, false = 1),
+    
+    # response
+    response = if_else(
+      condition = seizures_treatment <= seizures_baseline & drop_out == 0,
+      true = 1,
+      false = 0
+    ),
+    
+    # Log-transformations
+    seizures_baseline_log = log(seizures_baseline),
+    time_study_log = log(time_study)
+  )
+}
+
+# Function for simulation and regression of multiple datasets ##################
+regress <- function(x, n, delta) {
   
-  # function which generates a dataset
+  # Copy of "replicate_data", since it has to work with parallel
   replicate_data <- function(n = 200, delta = 0.13){
     output <- tibble(
       # seizures_baseline with individual lambda and more than three seizures
@@ -73,13 +139,12 @@ sampling <- function(x, n, delta) {
     )
   }
   
-  # function for different regression methods
   regress <- function(data) {
     # negativ binomial model
     neg_bin_summary <- summary(object = neg_bin <- glm.nb(
       formula = data$seizures_treatment ~ 
         data$treatment + data$seizures_baseline + offset(data$time_study_log)
-      ))
+    ))
     # neg bin seizures_baseline_log
     neg_bin_summary2 <- summary(object = neg_bin2 <- glm.nb(
       formula = data$seizures_treatment ~ data$treatment + 
@@ -186,7 +251,6 @@ sampling <- function(x, n, delta) {
       chi_square_p_value = chisq$p.value
     )
   }
-  
   data <- replicate_data(n = n, delta = delta)
   bind_cols(tibble(delta = delta, n = n), regress(data = data))
 }
@@ -195,13 +259,14 @@ sampling <- function(x, n, delta) {
 simulate_data <- function(
   number_datasets = 10000, # Number of Dataframes 
   n = 200,                 # Number of observations. If this should be variied, 
-  # it has to be a vector
+                           # it has to be a vector
   delta = 0.13,            # If observations are variied, this has to be a 
-  # constant
-  name = "n_200_delta_") { # Name of data frames
+                           # constant
+  name                     # Name of data frames (e.g. "n_200_delta_")
+) {
   if (length(n) > 1) {
     results <- lapply(X = n, FUN = function(n) {
-      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
+      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = regress, 
                           n = n, delta = delta))
     })
     # save each data.frame with an individual name
@@ -221,7 +286,7 @@ simulate_data <- function(
   } 
   if (length(delta) > 1) {
     results <- lapply(X = delta, FUN = function(delta) {
-      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = sampling, 
+      bind_rows(parLapply(cl = cl, X = 1:number_datasets, fun = regress, 
                           n = n, delta = delta))
     })
     # save each data.frame with an individual name
@@ -235,8 +300,7 @@ simulate_data <- function(
 
 # Without parralel computation for testing #####################################
 set.seed(42)
-result <- bind_rows(lapply(X = 1:10, FUN = sampling, n = 200, delta = 0.13))
-result
+result <- bind_rows(lapply(X = 1:10, FUN = regress, n = 200, delta = 0.13))
 
 # parallel computing for faster computation ####################################
 cl <- makeCluster(spec = detectCores())
@@ -244,22 +308,56 @@ clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 set.seed(seed = 42)
 system.time(results <- bind_rows(
-  parLapply(cl = cl, X = 1:10, fun = sampling, n = 200, delta = 0.13))
+  parLapply(cl = cl, X = 1:10, fun = regress, n = 200, delta = 0.13)
+))
+stopCluster(cl = cl)
+# Visualisation of one dataset #################################################
+set.seed(seed = 18)
+dataset <- replicate_data(n = 200, delta = 0.13)
+
+# Factors for visualisation
+dataset <- dataset %>% 
+  mutate(
+    treatment = as_factor(treatment), 
+    drop_out = as_factor(drop_out), 
+    censor = as_factor(censor), 
+    response = as_factor(response)
+  ) %>%
+  select(
+    -lambda_baseline, 
+    -lambda_treatment, 
+    -seizures_baseline_log, 
+    -time_study_log
+  )
+
+dataset
+summary(object = dataset)
+
+ggpairs(
+  data = dataset,
+  mapping = aes(colour = 1), 
+  title = "Replicated dataset",
+  upper = list(continuous = "points", combo = "box", discrete = "facetbar"),
+  lower = list(continuous = "points", combo = "box", discrete = "facetbar")
 )
+# ggsave(filename = "replicated_dataset.svg", path = "plots", scale = 2)
 
 # Different Deltas and Ns ######################################################
 x <- seq(from = 0, to = 0.35, by = 0.05)
-x <- seq(from = 50, to = 400, by = 50)
+x <- seq(from = 100, to = 450, by = 50)
 
 cl <- makeCluster(spec = detectCores())
 clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 
-system.time(simulate_data(number_datasets = 10000, delta = 0.1, n = x, 
+
+system.time(simulate_data(number_datasets = 100, delta = 0.1, n = x, 
                           name = "delta_0.1_n_"))
 
-# save dataframes
-save(list = ls(all.names = TRUE), file = "TestN_400.RData", envir = .GlobalEnv) 
-
 stopCluster(cl = cl)
+
+# save dataframes
+# save(list = ls(all.names = TRUE), file = "TestN_400.RData", 
+#      envir = .GlobalEnv) 
+
 rm(list = ls(pattern = "name"))

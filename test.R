@@ -410,3 +410,4 @@ plot_power <- function(data = power, x = x, group = "Method", title, x_label) {
 }
 plot_power(data = power, x = x, group = "Method", title = "N = 400", 
            x_label = "Delta")
+ggsave(filename = "n_400.svg", path = "plots")

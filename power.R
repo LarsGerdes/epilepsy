@@ -143,10 +143,9 @@ power
 x <- seq(from = 0, to = 0.75, by = 0.05)
 
 # Plot
-# png(filename = "plots/n_400.png", width = 1920, height = 1080)
 plot_power(data = power, x = x, group = "Method", title = "N = 400", 
            x_label = "Delta")
-# dev.off()
+# ggsave(filename = "n_400.svg", path = "plots")
 
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power)
