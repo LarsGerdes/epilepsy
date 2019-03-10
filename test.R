@@ -273,3 +273,140 @@ lapply(X = 1:length(x), FUN = function(i) {
   assign(paste0("name", nam$n[1], sep = ""), value = nam, 
          envir = globalenv())
 })
+
+# Power ########################################################################
+global <- ls(envir = .GlobalEnv)
+data_list <- lapply(
+  X = global[sapply(
+    X = global,
+    FUN = function(object) {is.data.frame(get(object))})],
+  FUN = get
+)
+p_treatment_list <- lapply(
+  X = data_list, 
+  FUN = select, 
+  neg_bin_p_value_treatment, 
+  neg_bin_log_p_value_treatment, 
+  logrank_p_value, 
+  cox_p_value_treatment, 
+  cox_p_value_log_treatment, 
+  cox3_p_value_treatment, 
+  logit_p_value_treatment, 
+  logit_p_value_log_treatment, 
+  chi_square_p_value
+)
+as_tibble(t(bind_cols(lapply(X = p_treatment_list, FUN = function(data) {
+  apply(X = data, MARGIN = 2, FUN = function(column) {
+    nrow(filter(.data = data, column <= 0.05)) / nrow(data)
+  })
+}))), .name_repair = ~ c(
+  "neg_bin_p_value_treatment", 
+  "neg_bin_log_p_value_treatment", 
+  "logrank_p_value", 
+  "cox_p_value_treatment", 
+  "cox_p_value_log_treatment", 
+  "cox3_p_value_treatment", 
+  "logit_p_value_treatment",
+  "logit_p_value_log_treatment",
+  "chi_square_p_value"
+))
+
+power <- bind_cols(lapply(X = p_treatment_list, FUN = function(data) {
+  apply(X = data, MARGIN = 2, FUN = function(column) {
+    nrow(filter(.data = data, column <= 0.05)) / nrow(data)
+  })
+})) %>% 
+  mutate(Method = c(
+    "neg_bin_p_value_treatment", 
+    "neg_bin_log_p_value_treatment", 
+    "logrank_p_value", 
+    "cox_p_value_treatment", 
+    "cox_p_value_log_treatment", 
+    "cox3_p_value_treatment", 
+    "logit_p_value_treatment",
+    "logit_p_value_log_treatment",
+    "chi_square_p_value"
+  ))
+power_plot <- as_tibble(stack(power)) %>% 
+  rename(Power = values, Method = ind) %>% 
+  mutate(
+    Group = if_else(condition = Method == "neg_bin_p_value_treatment" ||
+                      "neg_bin_log_p_value_treatment", 
+                    true = "count", false = "duration"), 
+    Group = if_else(condition = Method == "logit_p_value_treatment" || 
+                      "logit_p_value_log_treatment", 
+                    true = "binary", false = Group), 
+    Group = if_else(condition = Method == "chi_square_p_value", 
+                    true = "binary", false = Group)
+  )
+
+if_else(condition = power_plot$Method == "neg_bin_p_value_treatment" |
+          "neg_bin_log_p_value_treatment", 
+        true = "count", false = "duration")
+
+for (i in 1:nrow(power_plot)) {
+  if (power_plot$Method == "logit_p_value_treatment" || 
+      "logit_p_value_log_treatment") {
+    group[i] <- "count"
+  }
+}          
+
+x <- seq(from = 0, to = 0.75, by = 0.05)
+power_plot <- stack(power) %>% 
+  rename(Power = values, Method = ind) %>% 
+  mutate(
+    Group = rep("duration", times = length(Power)), 
+    Group = if_else(
+      condition = str_detect(string = Method, pattern = 'Logit|Chi'), 
+      true = "binary", 
+      false = Group
+    ), 
+    Group = if_else(
+      condition = str_detect(string = Method, pattern = 'Negative.Binomial'), 
+      true = "count", 
+      false = Group
+    ), x = rep(x, times = ncol(power))
+  )
+power_plot <- power_plot %>%
+  filter(str_detect(string = Method, pattern = 'Logit|Chi')) %>%
+  mutate(group = "binary") 
+power_plot <- power_plot %>%
+  filter(grepl(pattern = 'Negative.Binomial', x = power_plot$Method)) %>%
+  mutate(group = "count")
+str_detect(string = power_plot$Method, pattern = 'Logit|Chi')
+power_plot$group[grepl(pattern = "Logit", x = power_plot$Method)] <- "binary"
+power_plot$group[grep(pattern = "chi", x = power_plot$Method)] <- "binary"
+power_plot$group[grep(pattern = "neg_bin", x = power_plot$Method)] <- "count"
+ggplot(data = power_plot) + 
+  geom_line(mapping = aes(x = x, y = Power, group = Method, color = Group)) + 
+  geom_line(mapping = aes(x = x, y = 0.8)) + 
+  scale_color_viridis_d() + 
+  xlab(label = "Delta") +
+  ggtitle(label = "N = 400")
+plot_power <- function(data = power, x = x, group = "Method", title, x_label) {
+  power_plot <- stack(power) %>% 
+    rename(Power = values, Method = ind) %>% 
+    mutate(
+      Group = rep("Duration", times = length(Power)), 
+      Group = if_else(
+        condition = str_detect(string = Method, pattern = 'Logit|Chi'), 
+        true = "Binary", 
+        false = Group
+      ), 
+      Group = if_else(
+        condition = str_detect(string = Method, pattern = 'Negative.Binomial'), 
+        true = "Count", 
+        false = Group
+      ), 
+      x = rep(x, times = ncol(power))
+    )
+  ggplot(data = power_plot) + 
+    geom_line(mapping = aes_string(x = "x", y = "Power", group = "Method", 
+                            color = group)) + 
+    geom_line(mapping = aes(x = x, y = 0.8)) + 
+    scale_color_viridis_d() + 
+    xlab(label = x_label) +
+    ggtitle(label = title)
+}
+plot_power(data = power, x = x, group = "Method", title = "N = 400", 
+           x_label = "Delta")

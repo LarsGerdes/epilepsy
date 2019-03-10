@@ -191,28 +191,13 @@ sampling <- function(x, n, delta) {
   bind_cols(tibble(delta = delta, n = n), regress(data = data))
 }
 
-# Without parralel computation for testing #####################################
-set.seed(42)
-result <- bind_rows(lapply(X = 1:10, FUN = sampling, n = 200, delta = 0.13))
-result
-
-# parallel computing for faster computation ####################################
-cl <- makeCluster(spec = detectCores())
-clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
-                                    FUN = require, character.only = TRUE))
-set.seed(seed = 42)
-system.time(results <- bind_rows(
-  parLapply(cl = cl, X = 1:10, fun = sampling, n = 200, delta = 0.13))
-)
-
-# Different Deltas and Ns ######################################################
-# function to simulate for different values of delta
+# Function to simulate different values of delta and n #########################
 simulate_data <- function(
   number_datasets = 10000, # Number of Dataframes 
   n = 200,                 # Number of observations. If this should be variied, 
-                           # it has to be a vector
+  # it has to be a vector
   delta = 0.13,            # If observations are variied, this has to be a 
-                           # constant
+  # constant
   name = "n_200_delta_") { # Name of data frames
   if (length(n) > 1) {
     results <- lapply(X = n, FUN = function(n) {
@@ -248,14 +233,30 @@ simulate_data <- function(
   }
 }
 
+# Without parralel computation for testing #####################################
+set.seed(42)
+result <- bind_rows(lapply(X = 1:10, FUN = sampling, n = 200, delta = 0.13))
+result
+
+# parallel computing for faster computation ####################################
+cl <- makeCluster(spec = detectCores())
+clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
+                                    FUN = require, character.only = TRUE))
+set.seed(seed = 42)
+system.time(results <- bind_rows(
+  parLapply(cl = cl, X = 1:10, fun = sampling, n = 200, delta = 0.13))
+)
+
+# Different Deltas and Ns ######################################################
+x <- seq(from = 0, to = 0.35, by = 0.05)
+x <- seq(from = 50, to = 400, by = 50)
+
 cl <- makeCluster(spec = detectCores())
 clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 
-x <- seq(from = 0, to = 0.75, by = 0.05)
-x <- seq(from = 50, to = 1000, by = 50)
-system.time(simulate_data(number_datasets = 10, delta = 0, n = x, 
-                          name = "delta0_n"))
+system.time(simulate_data(number_datasets = 10000, delta = 0.1, n = x, 
+                          name = "delta_0.1_n_"))
 
 # save dataframes
 save(list = ls(all.names = TRUE), file = "TestN_400.RData", envir = .GlobalEnv) 
