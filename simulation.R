@@ -360,4 +360,4 @@ stopCluster(cl = cl)
 # save(list = ls(all.names = TRUE), file = "TestN_400.RData", 
 #      envir = .GlobalEnv) 
 
-rm(list = ls(pattern = "name"))
+# rm(list = ls(pattern = "name"))

@@ -170,62 +170,38 @@ ggplot() +
   guides(colour = FALSE, fill = FALSE)
 
 # Power = 0.8 ##################################################################
-x <- seq(from = 0, to = 0.75, by = 0.05)
-power_0.8 <- function(power = 0.8, x = x, data = power) {
+calculate_x_values <- function(power = 0.8, x = x, data = power) {
   
   index <- 1:ncol(data)
   
-  # Vectors are split into values above and below 0.8
-  intersect <- apply(X = diff(data > power) != 0, MARGIN = 2, FUN = which)
+  # Vectors are split into values above and below a power
+  intersect <- unlist(apply(X = diff(data > power) != 0, 
+                            MARGIN = 2, FUN = which))
   
   # Point below the split.
   y1 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i], i]}))
+  y1 <- y1[!is.na(y1)]
   # Point above the split.
   y2 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i] + 1, i]}))
+  y2 <- y2[!is.na(y2)]
   
   # Slope of intersection
   slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
   
   # Intersection
-  data.frame(x_values = x[intersect] + ((0.8 - y1) / (slope - 0)))
+  as_tibble(rownames_to_column(
+    data.frame(x_values = x[intersect] + ((0.8 - y1) / (slope - 0)))
+  )) %>% rename(Method = rowname)
 }
-power_0.8(power = 0.8, x = x, data = power)
-cat("Power =", power)
+calculate_x_values(power = 0.8, x = x, data = power)
 index <- 1:ncol(power)
-intersect <- apply(X = diff(power > 0.8) != 0, MARGIN = 2, FUN = which)
+intersect <- unlist(apply(X = diff(power > 0.8) != 0, MARGIN = 2, FUN = which))
 y1 <- unlist(sapply(X = index, FUN = function(i) {power[intersect[i], i]}))
-n <- 1:ncol(power)
-y  <- rep(0.8, length(x))
-y <- 0.8
-1:n
-dim(power)
-dim(tibble(1:ncol(power)))
-intersect <- apply(X = diff(power > 0.8) != 0, MARGIN = 2, FUN = which)
-y1 <- sapply(X = 1:length(intersect), 
-            FUN = function(x) {power[intersect[x], x]})
-power[intersect[1], 1]
-y2 <- unlist(sapply(X = 1:n, FUN = function(x) {power[intersect[x] + 1, x]}))
-slope_1 <- (y2 - y1) / (x[intersect + 1] - x[intersect])
-slope_2 <- rep(0, times = ncol(power))
-slope_2 <- 0
-point_x <- x[intersect] + 
-  ((0.8 - y1) / (slope - 0))
+y1 <- y1[!is.na(y1)]
+y2 <- unlist(sapply(X = index, FUN = function(i) {power[intersect[i] + 1, i]}))
+y2 <- y2[!is.na(y2)]
+slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
 
-y <- power$neg_bin_p_value_treatment
-y1 <- power$neg_bin_p_value_treatment
-y2  <- rep(0.8, length(x))
-
-above <- y1 > y2
-intersect <- which(diff(above) != 0)
-
-slope_1 <- (y1[intersect + 1] - y1[intersect]) / 
-  (x[intersect + 1] - x[intersect])
-slope_2 <- (y2[intersect + 1] - y2[intersect]) /
-  (x[intersect + 1] - x[intersect])
-
-point_x <- x[intersect] + 
-  ((y2[intersect] - y1[intersect]) / (slope_1 - slope_2))
-point_y <- y1[intersect] + (slope_1 * (point_x - x[intersect]))
 # Different Deltas and Ns ######################################################
 # function to simulate for different values of delta
 simulate_data <- function(number_datasets = 10000, n = 200, delta = 0.13, 

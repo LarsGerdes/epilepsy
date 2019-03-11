@@ -23,8 +23,9 @@ load("Data/N_100.RData")
 load("Data/N_200.RData")
 load("Data/N_400.RData")
 load("Data/N_600.RData")
-
-power.t.test(n = NULL, delta = 0.13, sig.level = 0.05, power = 0.8)
+load("Data/N_delta_0.1.RData")
+# rm(list = ls(pattern = "n200"))
+# power.t.test(n = NULL, delta = 0.13, sig.level = 0.05, power = 0.8)
 
 # Function for power calculation ###############################################
 calculate_power <- function(data = Null) {
@@ -117,12 +118,15 @@ calculate_x_values <- function(power = 0.8, x = x, data = power) {
   index <- 1:ncol(data)
   
   # Vectors are split into values above and below a power
-  intersect <- apply(X = diff(data > power) != 0, MARGIN = 2, FUN = which)
+  intersect <- unlist(apply(X = diff(data > power) != 0, 
+                            MARGIN = 2, FUN = which))
   
   # Point below the split.
   y1 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i], i]}))
+  y1 <- y1[!is.na(y1)]
   # Point above the split.
   y2 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i] + 1, i]}))
+  y2 <- y2[!is.na(y2)]
   
   # Slope of intersection
   slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
@@ -135,17 +139,17 @@ calculate_x_values <- function(power = 0.8, x = x, data = power) {
 
 # Execution ####################################################################
 # Calculate power
-# remove(power)
+remove(power)
 power <- calculate_power(data = NULL)
 # save(list = "power_100", file = "Data/power_100.RData", envir = .GlobalEnv)
 power
 
-x <- seq(from = 0, to = 0.75, by = 0.05)
+x <- seq(from = 100, to = 1000, by = 50)
 
 # Plot
-plot_power(data = power, x = x, group = "Method", title = "N = 400", 
-           x_label = "Delta")
-# ggsave(filename = "n_400.svg", path = "plots")
+plot_power(data = power, x = x, group = "Method", title = "Delta = 0.1", 
+           x_label = "n")
+ggsave(filename = "delta_01.svg", path = "plots")
 
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power)
