@@ -149,7 +149,7 @@ x <- seq(from = 100, to = 1000, by = 50)
 # Plot
 plot_power(data = power, x = x, group = "Method", title = "Delta = 0.1", 
            x_label = "n")
-ggsave(filename = "delta_01.svg", path = "plots")
+# ggsave(filename = "delta_01.svg", path = "plots")
 
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power)
