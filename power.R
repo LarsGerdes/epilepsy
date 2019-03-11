@@ -44,13 +44,13 @@ calculate_power <- function(data = Null) {
     X = data_list, 
     FUN = select, 
     neg_bin_p_value_treatment, 
-    neg_bin_log_p_value_treatment, 
+    # neg_bin_log_p_value_treatment, 
     logrank_p_value, 
     cox_p_value_treatment, 
-    cox_p_value_log_treatment, 
-    cox3_p_value_treatment, 
+    # cox_p_value_log_treatment, 
+    # cox3_p_value_treatment, 
     logit_p_value_treatment, 
-    logit_p_value_log_treatment, 
+    # logit_p_value_log_treatment, 
     chi_square_p_value
   )
   
@@ -63,13 +63,13 @@ calculate_power <- function(data = Null) {
     })
   }))), .name_repair = ~ c(
     "Negative.Binomial", 
-    "Negative.Binomial.Log", 
+    # "Negative.Binomial.Log", 
     "Log.Rank", 
     "Cox", 
-    "Cox.Log", 
-    "Cox.only.treatment", 
+    # "Cox.Log", 
+    # "Cox.only.treatment", 
     "Logit",
-    "Logit.Log",
+    # "Logit.Log",
     "Chi.Square"
   ))
 }
@@ -139,7 +139,7 @@ calculate_x_values <- function(power = 0.8, x = x, data = power) {
 
 # Execution ####################################################################
 # Calculate power
-remove(power)
+remove(results)
 power <- calculate_power(data = NULL)
 # save(list = "power_100", file = "Data/power_100.RData", envir = .GlobalEnv)
 power

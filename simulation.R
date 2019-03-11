@@ -66,7 +66,7 @@ replicate_data <- function(n = 200, delta = 0.13){
     ),
     
     # Log-transformations
-    seizures_baseline_log = log(seizures_baseline),
+    # seizures_baseline_log = log(seizures_baseline),
     time_study_log = log(time_study)
   )
 }
@@ -134,7 +134,7 @@ regress <- function(x, n, delta) {
       ),
       
       # Log-transformations
-      seizures_baseline_log = log(seizures_baseline),
+      # seizures_baseline_log = log(seizures_baseline),
       time_study_log = log(time_study)
     )
   }
@@ -145,11 +145,11 @@ regress <- function(x, n, delta) {
       formula = data$seizures_treatment ~ 
         data$treatment + data$seizures_baseline + offset(data$time_study_log)
     ))
-    # neg bin seizures_baseline_log
-    neg_bin_summary2 <- summary(object = neg_bin2 <- glm.nb(
-      formula = data$seizures_treatment ~ data$treatment + 
-        data$seizures_baseline_log + offset(data$time_study_log)
-    ))
+    # # neg bin seizures_baseline_log
+    # neg_bin_summary2 <- summary(object = neg_bin2 <- glm.nb(
+    #   formula = data$seizures_treatment ~ data$treatment + 
+    #     data$seizures_baseline_log + offset(data$time_study_log)
+    # ))
     
     # survival
     survtime <- Surv(time = data$time_baseline, event = data$censor)
@@ -160,13 +160,13 @@ regress <- function(x, n, delta) {
       formula =  survtime ~ data$treatment + data$seizures_baseline
     ))
     # cox seizures_baseline_log
-    cox_summary2 <- summary(object = cox2 <- coxph(
-      formula = survtime ~ data$treatment + data$seizures_baseline_log
-    ))
-    # cox only treatment
-    cox_summary3 <- summary(object = cox3 <- coxph(
-      formula = survtime ~ data$treatment
-    ))
+    # cox_summary2 <- summary(object = cox2 <- coxph(
+    #   formula = survtime ~ data$treatment + data$seizures_baseline_log
+    # ))
+    # # cox only treatment
+    # cox_summary3 <- summary(object = cox3 <- coxph(
+    #   formula = survtime ~ data$treatment
+    # ))
     
     # binary
     # logit
@@ -174,11 +174,11 @@ regress <- function(x, n, delta) {
       formula = data$response ~ data$treatment + data$seizures_baseline,
       family = binomial(link = "logit")
     ))
-    # logit seizures_baseline_log
-    logit_summary2 <- summary(object = logit2 <- glm(
-      formula = data$response ~ data$treatment + data$seizures_baseline_log,
-      family = binomial(link = "logit")
-    ))
+    # # logit seizures_baseline_log
+    # logit_summary2 <- summary(object = logit2 <- glm(
+    #   formula = data$response ~ data$treatment + data$seizures_baseline_log,
+    #   family = binomial(link = "logit")
+    # ))
     # chi square
     chisq <- chisq.test(x = data$treatment, y = data$response)
     
@@ -191,15 +191,16 @@ regress <- function(x, n, delta) {
       neg_bin_conf_IRR_low = NA,
       neg_bin_conf_IRR_up = NA,
       neg_bin_se_treatment = neg_bin_summary$coefficients[2,2],
-      # neg bin seizures_baseline_log
-      neg_bin_log_coefficient_treatment = exp(neg_bin2$coefficients[2]),
-      neg_bin_log_coefficient_seizures_baseline = exp(neg_bin2$coefficients[3]),
-      neg_bin_log_p_value_treatment = neg_bin_summary2$coefficients[2, 4],
-      neg_bin_log_p_value_seizures_baseline = 
-        neg_bin_summary2$coefficients[3, 4],
-      neg_bin_log_conf_IRR_low = NA,
-      neg_bin_log_conf_IRR_up = NA,
-      neg_bin_log_se_treatment = neg_bin_summary2$coefficients[2,2],
+      # # neg bin seizures_baseline_log
+      # neg_bin_log_coefficient_treatment = exp(neg_bin2$coefficients[2]),
+      # neg_bin_log_coefficient_seizures_baseline = 
+      #   exp(neg_bin2$coefficients[3]),
+      # neg_bin_log_p_value_treatment = neg_bin_summary2$coefficients[2, 4],
+      # neg_bin_log_p_value_seizures_baseline = 
+      #   neg_bin_summary2$coefficients[3, 4],
+      # neg_bin_log_conf_IRR_low = NA,
+      # neg_bin_log_conf_IRR_up = NA,
+      # neg_bin_log_se_treatment = neg_bin_summary2$coefficients[2,2],
       
       # survival
       # log rank
@@ -213,22 +214,22 @@ regress <- function(x, n, delta) {
       cox_conf_treatment_up = NA,
       cox_se_treatment = cox_summary$coefficients[1,3],
       cox_wald = cox$wald.test,
-      # cox seizures_baseline_log
-      cox_p_value_log_treatment = cox_summary2$coefficients[1, 5], 
-      cox_p_value_log_seizures_baseline = cox_summary2$coefficients[2,5], 
-      cox_HR_log_treatment = cox_summary2$coefficients[1,2],       
-      cox_HR_log_seizures_baseline = cox_summary2$coefficients[2, 2],
-      cox_log_conf_treatment_low = NA,
-      cox_log_conf_treatment_up = NA,
-      cox_log_se_treatment = cox_summary2$coefficients[1,3],
-      cox_log_wald = cox2$wald.test,
-      # cox only treatment
-      cox3_p_value_treatment = cox_summary3$coefficients[1, 5],
-      cox3_HR_treatment = cox_summary3$coefficients[1, 2],
-      cox3_conf_treatment_low = NA,
-      cox3_conf_treatment_up = NA,
-      cox3_se_treatment = cox_summary3$coefficients[1,3],
-      cox3_wald = cox3$wald.test,
+      # # cox seizures_baseline_log
+      # cox_p_value_log_treatment = cox_summary2$coefficients[1, 5], 
+      # cox_p_value_log_seizures_baseline = cox_summary2$coefficients[2,5], 
+      # cox_HR_log_treatment = cox_summary2$coefficients[1,2],       
+      # cox_HR_log_seizures_baseline = cox_summary2$coefficients[2, 2],
+      # cox_log_conf_treatment_low = NA,
+      # cox_log_conf_treatment_up = NA,
+      # cox_log_se_treatment = cox_summary2$coefficients[1,3],
+      # cox_log_wald = cox2$wald.test,
+      # # cox only treatment
+      # cox3_p_value_treatment = cox_summary3$coefficients[1, 5],
+      # cox3_HR_treatment = cox_summary3$coefficients[1, 2],
+      # cox3_conf_treatment_low = NA,
+      # cox3_conf_treatment_up = NA,
+      # cox3_se_treatment = cox_summary3$coefficients[1,3],
+      # cox3_wald = cox3$wald.test,
       
       # binary
       # logit
@@ -239,14 +240,14 @@ regress <- function(x, n, delta) {
       conf_treatment_low = NA,
       conf_treatment_up = NA,
       logit_se_treatment = logit_summary$coefficients[2, 2],
-      # logit seizures_baseline_log
-      logit_p_value_log_treatment = logit_summary2$coefficients[2, 4],
-      logit_p_value_log_seizures_baseline = logit_summary2$coefficients[3, 4],
-      oddsratio_log_treatment = exp(logit2$coefficients[2]),
-      oddsratio_log_seizures_baseline = exp(logit2$coefficients[3]),
-      conf_log_treatment_low = NA,
-      conf_log_treatment_up = NA,
-      logit_log_se_treatment = logit_summary2$coefficients[2, 2],
+      # # logit seizures_baseline_log
+      # logit_p_value_log_treatment = logit_summary2$coefficients[2, 4],
+      # logit_p_value_log_seizures_baseline = logit_summary2$coefficients[3, 4],
+      # oddsratio_log_treatment = exp(logit2$coefficients[2]),
+      # oddsratio_log_seizures_baseline = exp(logit2$coefficients[3]),
+      # conf_log_treatment_low = NA,
+      # conf_log_treatment_up = NA,
+      # logit_log_se_treatment = logit_summary2$coefficients[2, 2],
       # chi square
       chi_square_p_value = chisq$p.value
     )
