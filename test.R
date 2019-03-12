@@ -170,30 +170,46 @@ ggplot() +
   guides(colour = FALSE, fill = FALSE)
 
 # Power = 0.8 ##################################################################
-calculate_x_values <- function(power = 0.8, x = x, data = power) {
+calculate_x_values <- function(power = 0.8, x = x, data = power, 
+                               smooth = FALSE) {
   
-  index <- 1:ncol(data)
-  
-  # Vectors are split into values above and below a power
-  intersect <- unlist(apply(X = diff(data > power) != 0, 
-                            MARGIN = 2, FUN = which))
-  
-  # Point below the split.
-  y1 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i], i]}))
-  y1 <- y1[!is.na(y1)]
-  # Point above the split.
-  y2 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i] + 1, i]}))
-  y2 <- y2[!is.na(y2)]
-  
-  # Slope of intersection
-  slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
-  
-  # Intersection
-  as_tibble(rownames_to_column(
-    data.frame(x_values = x[intersect] + ((0.8 - y1) / (slope - 0)))
-  )) %>% rename(Method = rowname)
+  if (smooth == TRUE) {
+    
+    intersect <- which(diff(y_plot > 0.8) > 0)
+    
+    y1 <- y_plot[intersect]
+    y2 <- y_plot[intersect + 1]
+    
+    slope <- (y2 - y1) / (x_plot[intersect + 1] - x_plot[intersect])
+    
+    as_tibble(
+      data.frame(x_values = x_plot[intersect] + ((0.8 - y1) / (slope - 0)))
+    )
+    
+  } else {
+    index <- 1:ncol(data)
+    
+    # Vectors are split into values above and below a power
+    intersect <- unlist(apply(X = diff(data > power) != 0, 
+                              MARGIN = 2, FUN = which))
+    
+    # Point below the split.
+    y1 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i], i]}))
+    y1 <- y1[!is.na(y1)]
+    # Point above the split.
+    y2 <- unlist(sapply(X = index, FUN = function(i) {data[intersect[i] + 1, i]}))
+    y2 <- y2[!is.na(y2)]
+    
+    # Slope of intersection
+    slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
+    
+    # Intersection
+    as_tibble(rownames_to_column(
+      data.frame(x_values = x[intersect] + ((0.8 - y1) / (slope - 0)))
+    )) %>% rename(Method = rowname)
+  }
 }
-calculate_x_values(power = 0.8, x = x, data = power)
+calculate_x_values(power = 0.8, x = x, data = power, smooth = TRUE)
 index <- 1:ncol(power)
 intersect <- unlist(apply(X = diff(power > 0.8) != 0, MARGIN = 2, FUN = which))
 y1 <- unlist(sapply(X = index, FUN = function(i) {power[intersect[i], i]}))
@@ -201,7 +217,18 @@ y1 <- y1[!is.na(y1)]
 y2 <- unlist(sapply(X = index, FUN = function(i) {power[intersect[i] + 1, i]}))
 y2 <- y2[!is.na(y2)]
 slope <- (y2 - y1) / (x[intersect + 1] - x[intersect])
-
+p <- plot_power(data = power, x = x, group = "Method", title = "Delta = 0.1", 
+           x_label = "n", smooth = TRUE)
+x_plot <- ggplot_build(plot = p)$data[[1]]$x
+y_plot <- ggplot_build(plot = p)$data[[1]]$y
+x_plot[intersect != max(x_plot)]
+intersect <- which(diff(y_plot > 0.8) > 0)
+y1 <- y_plot[intersect]
+y2 <- y_plot[intersect + 1]
+slope <- (y2 - y1) / (x_plot[intersect + 1] - x_plot[intersect])
+as_tibble(rownames_to_column(
+  data.frame(x_values = x_plot[intersect] + ((0.8 - y1) / (slope - 0)))
+)) %>% rename(Method = rowname)
 # Different Deltas and Ns ######################################################
 # function to simulate for different values of delta
 simulate_data <- function(number_datasets = 10000, n = 200, delta = 0.13, 
@@ -403,6 +430,64 @@ predict(object = loess(formula = Power ~ x, data = power_plot),
 ncol(power_plot)
 loess(formula = Power ~ x, data = power_plot)
 
+
+
+# plot_power ###################################################################
+plot_power <- function(
+  data = power,     # Name of data frame with power values
+  x = x,            # Scale of x axis
+  group = "Method", # "Method": Each line gets individual color
+  # "Group": Colors are grouped in duration, count and binary
+  smooth = FALSE,   # TRUE the lines are smoothed 
+  title,            # Title of plot
+  x_label           # Name of x-axis
+) {
+  
+  # Create data frame, which can be grouped by method or group
+  power_plot <- stack(power) %>% 
+    rename(Power = values, Method = ind) %>% 
+    mutate(
+      Group = rep("Duration", times = length(Power)), 
+      Group = if_else(
+        condition = str_detect(string = Method, pattern = 'Logit|Chi'), 
+        true = "Binary", 
+        false = Group
+      ), 
+      Group = if_else(
+        condition = str_detect(string = Method, pattern = 'Negative.Binomial'), 
+        true = "Count", 
+        false = Group
+      ), 
+      x = rep(x, times = ncol(power))
+    )
+  
+  # Plot
+  if (smooth == TRUE) {
+    plot <- ggplot(data = power_plot) + 
+      stat_smooth(
+        mapping = aes_string(x = "x", y = "Power", group = "Method", 
+                             color = group),
+        method = "loess", formula = y ~ x, level = 0) + 
+      geom_line(mapping = aes(x = x, y = 0.8)) + 
+      scale_color_viridis_d() + 
+      xlab(label = x_label) + 
+      ggtitle(label = title)
+    plot
+  } else {
+    plot <- ggplot(data = power_plot) + 
+      geom_line(mapping = aes_string(x = "x", y = "Power", group = "Method", 
+                                     color = group)) + 
+      geom_line(mapping = aes(x = x, y = 0.8)) + 
+      scale_color_viridis_d() + 
+      xlab(label = x_label) +
+      ggtitle(label = title)
+    plot
+  }
+  x_plot <<- ggplot_build(plot = plot)$data[[1]]$x
+  y_plot <<- ggplot_build(plot = plot)$data[[1]]$y
+}
+plot_power(data = power, x = x, group = "Method", title = "Delta = 0.1", 
+           x_label = "n", smooth = TRUE)
 power_plot <- stack(power) %>% 
   rename(Power = values, Method = ind) %>% 
   mutate(
@@ -420,7 +505,7 @@ power_plot <- stack(power) %>%
   )
 ggplot(data = power_plot) + 
   stat_smooth(mapping = aes(x = x, y = Power, group = Method, color = Method), 
-              method = "loess", formula = y ~ x, level = 0, fullrange = TRUE) + 
+              method = "loess", formula = y ~ x, level = 0) + 
   geom_line(mapping = aes(x = x, y = 0.8)) + 
   scale_color_viridis_d() + 
   xlab(label = "n") + 

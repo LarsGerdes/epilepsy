@@ -56,4 +56,7 @@ summary(object = logit_log <- glm(
 # -> Treatment has no significant effect.
 
 # Chi^2
+table(epilepsy$response, epilepsy$treatment, dnn = c("response", "treatment"))
 chisq.test(x = epilepsy$treatment, y = epilepsy$response)
+# -> Do not reject H0.
+# -> Independence.
