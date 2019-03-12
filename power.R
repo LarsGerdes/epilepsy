@@ -23,7 +23,7 @@ load("Data/N_100.RData")
 load("Data/N_200.RData")
 load("Data/N_400.RData")
 load("Data/N_600.RData")
-load("Data/N_delta_0.1.RData")
+load("Data/delta_01.RData")
 # rm(list = ls(pattern = "n200"))
 # power.t.test(n = NULL, delta = 0.13, sig.level = 0.05, power = 0.8)
 
@@ -139,7 +139,7 @@ calculate_x_values <- function(power = 0.8, x = x, data = power) {
 
 # Execution ####################################################################
 # Calculate power
-remove(results)
+remove(epilepsy)
 power <- calculate_power(data = NULL)
 # save(list = "power_100", file = "Data/power_100.RData", envir = .GlobalEnv)
 power
@@ -149,7 +149,7 @@ x <- seq(from = 100, to = 1000, by = 50)
 # Plot
 plot_power(data = power, x = x, group = "Method", title = "Delta = 0.1", 
            x_label = "n")
-# ggsave(filename = "delta_01.svg", path = "plots")
+ggsave(filename = "delta_01_smooth.pdf", path = "plots")
 
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power)

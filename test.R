@@ -387,3 +387,41 @@ plot_power <- function(data = power, x = x, group = "Method", title, x_label) {
 plot_power(data = power, x = x, group = "Method", title = "N = 400", 
            x_label = "Delta")
 ggsave(filename = "n_400.svg", path = "plots")
+x <- seq(from = 100, to = 1000, by = 50)
+ggplot(data = power_plot) + 
+  stat_smooth(mapping = aes(x = x, y = Power, group = Method, color = Method), 
+              method = "loess", formula = y ~ x, level = 0, fullrange = TRUE) + 
+  geom_line(mapping = aes(x = x, y = 0.8)) + 
+  scale_color_viridis_d() + 
+  xlab(label = "n") + 
+  ggtitle(label = "Delta = 0.1")
+
+ggplot_build(p)$data[[1]]
+  approx(x = x, y = Power)
+predict(object = loess(formula = Power ~ x, data = power_plot), 
+        newdata = data.frame(Power = rep(0.8, times = 19)))
+ncol(power_plot)
+loess(formula = Power ~ x, data = power_plot)
+
+power_plot <- stack(power) %>% 
+  rename(Power = values, Method = ind) %>% 
+  mutate(
+    Group = rep("duration", times = length(Power)), 
+    Group = if_else(
+      condition = str_detect(string = Method, pattern = 'Logit|Chi'), 
+      true = "binary", 
+      false = Group
+    ), 
+    Group = if_else(
+      condition = str_detect(string = Method, pattern = 'Negative.Binomial'), 
+      true = "count", 
+      false = Group
+    ), x = rep(x, times = ncol(power))
+  )
+ggplot(data = power_plot) + 
+  stat_smooth(mapping = aes(x = x, y = Power, group = Method, color = Method), 
+              method = "loess", formula = y ~ x, level = 0, fullrange = TRUE) + 
+  geom_line(mapping = aes(x = x, y = 0.8)) + 
+  scale_color_viridis_d() + 
+  xlab(label = "n") + 
+  ggtitle(label = "Delta = 0.1")

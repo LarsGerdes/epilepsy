@@ -36,4 +36,24 @@ ggpairs(
   upper = list(continuous = "points", combo = "box", discrete = "facetbar"),
   lower = list(continuous = "points", combo = "box", discrete = "facetbar")
 )
-# ggsave(filename = "original_dataset.svg", path = "plots", scale = 2)
+# ggsave(filename = "original_dataset_test.svg", path = "plots", scale = 2)
+ggplot(data = epilepsy) + geom_density(mapping = aes(x = ))
+# Regression ###################################################################
+# Logit
+summary(object = logit <- glm(
+  formula = response ~ treatment + seizures_baseline, 
+  family = binomial(link = "logit"), 
+  data = epilepsy
+))
+summary(object = logit_log <- glm(
+  formula = response ~ treatment + seizures_baseline_log, 
+  family = binomial(link = "logit"), 
+  data = epilepsy
+))
+# AIC of logit_log is smaller at 0.01
+# -> We choose the model without transformation.
+# -> Only intercept is significant.
+# -> Treatment has no significant effect.
+
+# Chi^2
+chisq.test(x = epilepsy$treatment, y = epilepsy$response)
