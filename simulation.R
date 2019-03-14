@@ -343,21 +343,20 @@ ggpairs(
 # ggsave(filename = "replicated_dataset.svg", path = "plots", scale = 2)
 
 # Different Deltas and Ns ######################################################
-x <- seq(from = 0, to = 0.35, by = 0.05)
 x <- seq(from = 50, to = 75, by = 25)
 
 cl <- makeCluster(spec = detectCores())
 clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 
-
-system.time(simulate_data(number_datasets = 10000, delta = 0.05, n = x, 
-                          name = "delta_005_n_"))
+set.seed(seed = 42)
+system.time(simulate_data(number_datasets = 10000, delta = x, n = 750, 
+                          name = "n_750_delta_"))
 
 stopCluster(cl = cl)
 
 # save dataframes
-save(list = ls(pattern = "delta_005_n_"), file = "data/delta_005_n_50_75.RData", 
+save(list = ls(pattern = "n_750_delta_"), file = "data/n_750.RData", 
      envir = .GlobalEnv)
 
 rm(list = ls(pattern = "name"))

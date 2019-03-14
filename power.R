@@ -4,7 +4,7 @@ library(tidyverse)
 library(gridExtra)
 
 # Data
-load(file = "data/delta_30.RData")
+load(file = "data/delta_25.RData")
 
 # Function for power calculation ###############################################
 calculate_power <- function(data = Null) {
@@ -151,18 +151,27 @@ calculate_x_values <- function(power = 0.8, x = x, data = power,
 
 # Execution ####################################################################
 # Calculate power
-power_delta_30 <- calculate_power(data = NULL)
-save(list = "power_delta_30", file = "Data/power_delta_30.RData",
-     envir = .GlobalEnv)
+power_delta_25 <- calculate_power(data = NULL)
+# save(list = "power_delta_25", file = "data/power_delta_25.RData",
+#      envir = .GlobalEnv)
 
 # Plot
-plot_delta_30 <- plot_power(data = power_delta_30, x = x, group = "Method",
-                            title = expression(delta ~ "= 0.30"), x_label = "n", 
-                            smooth = FALSE, power = 0.8)
+n <- c(seq(from = 50, to = 600, by = 25), 700, 800, 900, 1000)
+delta <- seq(from = 0, to = 0.3, by = 0.05)
+plot_n_750 <- plot_power(data = power_n_750, x = delta, group = "Method", 
+           title = "n = 750", x_label = expression(delta), 
+           smooth = FALSE, power = 0.8)
+# expression(delta ~ "= 0.30") If plots with fixed delta for title
+# save(list = "plot_n_750", file = "data/plot_n_750.RData",
+#      envir = .GlobalEnv)
+# ggsave(filename = "n_750.svg", path = "plots") # , width = 8.2, height = 4.25
 
-save(list = "plot_delta_30", file = "Data/plot_delta_30.RData",
-     envir = .GlobalEnv)
-ggsave(filename = "delta_30.svg", path = "plots", width = 8.2, height = 4.25)
-ggsave(filename = "delta_05.png", path = "plots", width = 8.2, height = 4.25)
 # X-values for specific power
-calculate_x_values(power = 0.8, x = x, data = power_delta_30, smooth = TRUE)
+x_delta_25 <- calculate_x_values(power = 0.8, x = n, data = power_delta_25, 
+                              smooth = FALSE)
+save(list = "x_delta_25", file = "data/x_delta_25.RData")
+x_delta <- bind_cols(x_delta_10, x_delta_15, x_delta_20, x_delta_25) %>% 
+  rename(delta.10 = x_values, delta.15 = x_values1, delta.20 = x_values2, 
+         delta.25 = x_values3) %>% 
+  select(-Method1, -Method2, -Method3)
+save(list = "x_delta", file = "data/x_n.RData")
