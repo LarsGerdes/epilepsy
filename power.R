@@ -4,27 +4,7 @@ library(tidyverse)
 library(gridExtra)
 
 # Data
-load("Data/delta_000.RData")
-delta_000 <- result_df
-load("Data/delta_010.RData")
-delta_010 <- result_df
-load("../Stat Praktikum/delta_013.RData")
-delta_013 <- result_df
-load("../Stat Praktikum/delta_015.RData")
-delta_015 <- result_df
-load("../Stat Praktikum/delta_020.RData")
-delta_020 <- result_df
-load("../Stat Praktikum/delta_025.RData")
-delta_025 <- result_df
-load("../Stat Praktikum/delta_100.RData")
-delta_100 <- result_df
-rm(result_df)
-load("Data/N_100.RData")
-load("Data/N_200.RData")
-load("Data/N_400.RData")
-load("Data/N_600.RData")
-load("Data/delta_01.RData")
-# rm(list = ls(pattern = "n200"))
+load(file = "data/delta_00.RData")
 
 # Function for power calculation ###############################################
 calculate_power <- function(data = Null) {
@@ -78,17 +58,18 @@ plot_power <- function(
   data = power,     # Name of data frame with power values
   x = x,            # Scale of x axis
   group = "Method", # "Method": Each line gets individual color
-  # "Group": Colors are grouped in duration, count and binary
+                    # "Group": Colors are grouped in duration, count and binary
   smooth = FALSE,   # TRUE the lines are smoothed 
   title,            # Title of plot
-  x_label           # Name of x-axis
+  x_label,          # Name of x-axis
+  power = 0.8       # One specific power which should stand out
 ) {
   
   # Create data frame, which can be grouped by method or group
-  power_plot <- stack(power) %>% 
+  power_plot <- stack(data) %>% 
     rename(Power = values, Method = ind) %>% 
     mutate(
-      Group = rep("Duration", times = length(Power)), 
+      Group = rep("Duration", times = nrow(data)*ncol(data)), 
       Group = if_else(
         condition = str_detect(string = Method, pattern = 'Logit|Chi'), 
         true = "Binary", 
@@ -99,7 +80,7 @@ plot_power <- function(
         true = "Count", 
         false = Group
       ), 
-      x = rep(x, times = ncol(power))
+      x = rep(x, times = ncol(data))
     )
   
   # Plot
@@ -109,7 +90,7 @@ plot_power <- function(
         mapping = aes_string(x = "x", y = "Power", group = "Method", 
                              color = group),
         method = "loess", formula = y ~ x, level = 0) + 
-      geom_line(mapping = aes(x = x, y = 0.8)) + 
+      geom_line(mapping = aes(x = x, y = power)) + 
       scale_color_viridis_d() + 
       xlab(label = x_label) + 
       ggtitle(label = title)
@@ -117,7 +98,7 @@ plot_power <- function(
     plot <- ggplot(data = power_plot) + 
       geom_line(mapping = aes_string(x = "x", y = "Power", group = "Method", 
                                      color = group)) + 
-      geom_line(mapping = aes(x = x, y = 0.8)) + 
+      geom_line(mapping = aes(x = x, y = power)) + 
       scale_color_viridis_d() + 
       xlab(label = x_label) +
       ggtitle(label = title)
@@ -170,73 +151,19 @@ calculate_x_values <- function(power = 0.8, x = x, data = power,
 
 # Execution ####################################################################
 # Calculate power
-remove(epilepsy)
-power <- calculate_power(data = NULL)
-# save(list = "power_100", file = "Data/power_100.RData", envir = .GlobalEnv)
-power
-
-x <- seq(from = 100, to = 1000, by = 50)
+power_delta_00 <- calculate_power(data = NULL)
+save(list = "power_delta_00", file = "Data/power_delta_00.RData", 
+     envir = .GlobalEnv)
 
 # Plot
-plot_power(data = power, x = x, group = "Method", title = "Delta = 0.1", 
-           x_label = "n", smooth = TRUE)
-ggsave(filename = "delta_01_smooth.pdf", path = "plots")
+plot_delta_00 <- plot_power(data = power_delta_00, x = x, group = "Method",
+                            title = "delta", x_label = "n")
+save(list = "plot_delta_00", file = "Data/plot_delta_00.RData", 
+     envir = .GlobalEnv)
+ggsave(filename = "delta_00.svg", path = "plots")
 
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power, smooth = TRUE)
 
-# Other Plots ##################################################################
-epi_seizures <- ggplot(data = epilepsy) + 
-  geom_density(mapping = aes(x = seizures_treatment, fill = 1)) + 
-  guides(fill = FALSE) + 
-  theme_classic()
-dat_seizures <- ggplot(data = dataset[[11]]) + 
-  geom_density(mapping = aes(x = seizures_treatment, fill = 1)) + 
-  guides(fill = FALSE) +
-  theme_classic()
-epi_time <- ggplot(data = epilepsy) + 
-  geom_density(mapping = aes(x = time_baseline, fill = 1)) + 
-  guides(fill = FALSE) + 
-  theme_classic()
-dat_time <- ggplot(data = dataset[[11]]) + 
-  geom_density(mapping = aes(x = time_baseline, fill = 1)) + 
-  guides(fill = FALSE) + 
-  theme_classic()
-epi_point <- ggplot(data = epilepsy) + 
-  geom_point(mapping = aes(x = time_study, y = seizures_treatment, color = 1)) + 
-  guides(color = FALSE) + 
-  theme_classic()
-dat_point <- ggplot(data = dataset[[11]]) + 
-  geom_point(mapping = aes(x = time_study, y = seizures_treatment, color = 1)) + 
-  guides(color = FALSE) + 
-  theme_classic()
-
-# jpeg(filename = "plots/plot.jpg")
-grid.arrange(epi_seizures, dat_seizures, epi_time, dat_time, epi_point, 
-             dat_point)
-# dev.off()
-
-ggplot(data = power) + 
-  geom_line(mapping = aes(x = x, y = neg_bin_p_value_treatment, 
-                          color = "Negative Binomial")) + 
-  geom_line(mapping = aes(x = x, y = neg_bin_log_p_value_treatment, 
-                          color = "Negative Binomial Log")) +
-  geom_line(mapping = aes(x = x, y = logrank_p_value, color = "Log Rank")) +
-  geom_line(mapping = aes(x = x, y = cox_p_value_treatment, 
-                          color = "Cox (full)")) +
-  geom_line(mapping = aes(x = x, y = cox_p_value_log_treatment, 
-                          color = "Cox Log (full)")) +
-  geom_line(mapping = aes(x = x, y = cox3_p_value_treatment, 
-                          color = "Cox (only treatment)")) +
-  geom_line(mapping = aes(x = x, y = logit_p_value_treatment, 
-                          color = "Logit")) +
-  geom_line(mapping = aes(x = x, y = logit_p_value_log_treatment, 
-                          color = "Logit Log")) +
-  geom_line(mapping = aes(x = x, y = chi_square_p_value, 
-                          color = "Chi Square")) +
-  geom_line(mapping = aes(x = x, y = 0.05, color = "0.05")) +
-  geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) + 
-  scale_color_viridis_d(name = "Method") +
-  xlab(label = "delta") +
-  ylab(label = "Power") +
-  ggtitle(label = "N = 400")
+# Plots
+delta00

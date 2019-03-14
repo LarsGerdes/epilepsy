@@ -510,3 +510,77 @@ ggplot(data = power_plot) +
   scale_color_viridis_d() + 
   xlab(label = "n") + 
   ggtitle(label = "Delta = 0.1")
+# Indifference Plot ############################################################
+powerdat <- data.frame(
+  Negative.Binomial = c(1700, 454, 206, 115, 55), 
+  Log.Rank = c(2454, 758, 343, 197, 91),
+  Cox = c(2437, 755, 340, 194, 90), 
+  Logit = c(4239, 1291, 576, 314, 138),
+  Chi2 = c(4408, 1395, 614, 346, 156)
+)
+
+as_tibble(stack(powerdat)) %>% 
+  rename(n = values, Method = ind) %>%
+  mutate(delta = rep(c(0.05, 0.1, 0.15, 0.2, 0.3), times = ncol(powerdat))) %>% 
+  ggplot() + 
+  geom_line(mapping = aes(x = delta, y = n, group = Method, color = Method)) + 
+  scale_color_viridis_d() +
+  ggtitle(label = "Power = 0.8")
+ggsave(filename = "power_08.png", device = "png", dpi = "retina", width = 20, 
+       height = 12, units = "cm", path = "plots")
+
+# Other Plots ##################################################################
+epi_seizures <- ggplot(data = epilepsy) + 
+  geom_density(mapping = aes(x = seizures_treatment, fill = 1)) + 
+  guides(fill = FALSE) + 
+  theme_classic()
+dat_seizures <- ggplot(data = dataset[[11]]) + 
+  geom_density(mapping = aes(x = seizures_treatment, fill = 1)) + 
+  guides(fill = FALSE) +
+  theme_classic()
+epi_time <- ggplot(data = epilepsy) + 
+  geom_density(mapping = aes(x = time_baseline, fill = 1)) + 
+  guides(fill = FALSE) + 
+  theme_classic()
+dat_time <- ggplot(data = dataset[[11]]) + 
+  geom_density(mapping = aes(x = time_baseline, fill = 1)) + 
+  guides(fill = FALSE) + 
+  theme_classic()
+epi_point <- ggplot(data = epilepsy) + 
+  geom_point(mapping = aes(x = time_study, y = seizures_treatment, color = 1)) + 
+  guides(color = FALSE) + 
+  theme_classic()
+dat_point <- ggplot(data = dataset[[11]]) + 
+  geom_point(mapping = aes(x = time_study, y = seizures_treatment, color = 1)) + 
+  guides(color = FALSE) + 
+  theme_classic()
+
+# jpeg(filename = "plots/plot.jpg")
+grid.arrange(epi_seizures, dat_seizures, epi_time, dat_time, epi_point, 
+             dat_point)
+# dev.off()
+
+ggplot(data = power) + 
+  geom_line(mapping = aes(x = x, y = neg_bin_p_value_treatment, 
+                          color = "Negative Binomial")) + 
+  geom_line(mapping = aes(x = x, y = neg_bin_log_p_value_treatment, 
+                          color = "Negative Binomial Log")) +
+  geom_line(mapping = aes(x = x, y = logrank_p_value, color = "Log Rank")) +
+  geom_line(mapping = aes(x = x, y = cox_p_value_treatment, 
+                          color = "Cox (full)")) +
+  geom_line(mapping = aes(x = x, y = cox_p_value_log_treatment, 
+                          color = "Cox Log (full)")) +
+  geom_line(mapping = aes(x = x, y = cox3_p_value_treatment, 
+                          color = "Cox (only treatment)")) +
+  geom_line(mapping = aes(x = x, y = logit_p_value_treatment, 
+                          color = "Logit")) +
+  geom_line(mapping = aes(x = x, y = logit_p_value_log_treatment, 
+                          color = "Logit Log")) +
+  geom_line(mapping = aes(x = x, y = chi_square_p_value, 
+                          color = "Chi Square")) +
+  geom_line(mapping = aes(x = x, y = 0.05, color = "0.05")) +
+  geom_line(mapping = aes(x = x, y = 0.8, color = "0.8")) + 
+  scale_color_viridis_d(name = "Method") +
+  xlab(label = "delta") +
+  ylab(label = "Power") +
+  ggtitle(label = "N = 400")

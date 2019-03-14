@@ -60,3 +60,10 @@ table(epilepsy$response, epilepsy$treatment, dnn = c("response", "treatment"))
 chisq.test(x = epilepsy$treatment, y = epilepsy$response)
 # -> Do not reject H0.
 # -> Independence.
+
+# Delta
+d <- dataset %>% 
+  group_by(treatment) %>% 
+  summarise(mean = mean(seizures_treatment), sd = sd(seizures_treatment))
+
+((d[2, 2] - d[1, 2]) / d[1, 3])

@@ -327,7 +327,6 @@ dataset <- dataset %>%
   select(
     -lambda_baseline, 
     -lambda_treatment, 
-    -seizures_baseline_log, 
     -time_study_log
   )
 
@@ -345,20 +344,20 @@ ggpairs(
 
 # Different Deltas and Ns ######################################################
 x <- seq(from = 0, to = 0.35, by = 0.05)
-x <- seq(from = 100, to = 450, by = 50)
+x <- seq(from = 50, to = 75, by = 25)
 
 cl <- makeCluster(spec = detectCores())
 clusterEvalQ(cl = cl, expr = lapply(X = c("MASS", "tidyverse", "survival"),
                                     FUN = require, character.only = TRUE))
 
 
-system.time(simulate_data(number_datasets = 100, delta = 0.1, n = x, 
-                          name = "delta_0.1_n_"))
+system.time(simulate_data(number_datasets = 10000, delta = 0.05, n = x, 
+                          name = "delta_005_n_"))
 
 stopCluster(cl = cl)
 
 # save dataframes
-# save(list = ls(all.names = TRUE), file = "TestN_400.RData", 
-#      envir = .GlobalEnv) 
+save(list = ls(pattern = "delta_005_n_"), file = "data/delta_005_n_50_75.RData", 
+     envir = .GlobalEnv)
 
-# rm(list = ls(pattern = "name"))
+rm(list = ls(pattern = "name"))
