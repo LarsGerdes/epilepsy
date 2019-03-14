@@ -4,8 +4,7 @@ library(tidyverse)
 library(gridExtra)
 
 # Data
-load(file = "data/delta_00.RData")
-load(file = "data/power_delta_00.RData")
+load(file = "data/delta_30.RData")
 
 # Function for power calculation ###############################################
 calculate_power <- function(data = Null) {
@@ -152,16 +151,18 @@ calculate_x_values <- function(power = 0.8, x = x, data = power,
 
 # Execution ####################################################################
 # Calculate power
-power_delta_00 <- calculate_power(data = NULL)
-# save(list = "power_delta_00", file = "Data/power_delta_00.RData", 
-#      envir = .GlobalEnv)
+power_delta_30 <- calculate_power(data = NULL)
+save(list = "power_delta_30", file = "Data/power_delta_30.RData",
+     envir = .GlobalEnv)
 
 # Plot
-plot_delta_00 <- plot_power(data = power_delta_00, x = x, group = "Method",
-                            title = expression(delta ~ "= 0.00"), x_label = "n", 
-                            smooth = FALSE, power = 0.05)
-# save(list = "plot_delta_00", file = "Data/plot_delta_00.RData", 
-#      envir = .GlobalEnv)
-# ggsave(filename = "delta_00.svg", path = "plots")
+plot_delta_30 <- plot_power(data = power_delta_30, x = x, group = "Method",
+                            title = expression(delta ~ "= 0.30"), x_label = "n", 
+                            smooth = FALSE, power = 0.8)
+
+save(list = "plot_delta_30", file = "Data/plot_delta_30.RData",
+     envir = .GlobalEnv)
+ggsave(filename = "delta_30.svg", path = "plots", width = 8.2, height = 4.25)
+ggsave(filename = "delta_05.png", path = "plots", width = 8.2, height = 4.25)
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power, smooth = TRUE)
