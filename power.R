@@ -5,6 +5,7 @@ library(gridExtra)
 
 # Data
 load(file = "data/delta_00.RData")
+load(file = "data/power_delta_00.RData")
 
 # Function for power calculation ###############################################
 calculate_power <- function(data = Null) {
@@ -152,18 +153,15 @@ calculate_x_values <- function(power = 0.8, x = x, data = power,
 # Execution ####################################################################
 # Calculate power
 power_delta_00 <- calculate_power(data = NULL)
-save(list = "power_delta_00", file = "Data/power_delta_00.RData", 
-     envir = .GlobalEnv)
+# save(list = "power_delta_00", file = "Data/power_delta_00.RData", 
+#      envir = .GlobalEnv)
 
 # Plot
 plot_delta_00 <- plot_power(data = power_delta_00, x = x, group = "Method",
-                            title = "delta", x_label = "n")
-save(list = "plot_delta_00", file = "Data/plot_delta_00.RData", 
-     envir = .GlobalEnv)
-ggsave(filename = "delta_00.svg", path = "plots")
-
+                            title = expression(delta ~ "= 0.00"), x_label = "n", 
+                            smooth = FALSE, power = 0.05)
+# save(list = "plot_delta_00", file = "Data/plot_delta_00.RData", 
+#      envir = .GlobalEnv)
+# ggsave(filename = "delta_00.svg", path = "plots")
 # X-values for specific power
 calculate_x_values(power = 0.8, x = x, data = power, smooth = TRUE)
-
-# Plots
-delta00
