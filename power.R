@@ -165,4 +165,4 @@ save(list = "plot_delta_30", file = "Data/plot_delta_30.RData",
 ggsave(filename = "delta_30.svg", path = "plots", width = 8.2, height = 4.25)
 ggsave(filename = "delta_05.png", path = "plots", width = 8.2, height = 4.25)
 # X-values for specific power
-calculate_x_values(power = 0.8, x = x, data = power, smooth = TRUE)
+calculate_x_values(power = 0.8, x = x, data = power_delta_30, smooth = TRUE)
