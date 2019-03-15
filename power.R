@@ -151,27 +151,56 @@ calculate_x_values <- function(power = 0.8, x = x, data = power,
 
 # Execution ####################################################################
 # Calculate power
-power_delta_25 <- calculate_power(data = NULL)
-# save(list = "power_delta_25", file = "data/power_delta_25.RData",
-#      envir = .GlobalEnv)
+power_delta_30 <- calculate_power(data = NULL)
+
 
 # Plot
 n <- c(seq(from = 50, to = 600, by = 25), 700, 800, 900, 1000)
 delta <- seq(from = 0, to = 0.3, by = 0.05)
-plot_n_750 <- plot_power(data = power_n_750, x = delta, group = "Method", 
-           title = "n = 750", x_label = expression(delta), 
+plot_n_200 <- plot_power(data = power_n_200, x = delta, group = "Method", 
+           title = "n = 200", x_label = expression(delta), 
            smooth = FALSE, power = 0.8)
 # expression(delta ~ "= 0.30") If plots with fixed delta for title
-# save(list = "plot_n_750", file = "data/plot_n_750.RData",
-#      envir = .GlobalEnv)
-# ggsave(filename = "n_750.svg", path = "plots") # , width = 8.2, height = 4.25
 
 # X-values for specific power
-x_delta_25 <- calculate_x_values(power = 0.8, x = n, data = power_delta_25, 
+calculate_x_values(power = 0.8, x = x, data = power_delta_30, 
                               smooth = FALSE)
-save(list = "x_delta_25", file = "data/x_delta_25.RData")
-x_delta <- bind_cols(x_delta_10, x_delta_15, x_delta_20, x_delta_25) %>% 
+x_delta <- bind_cols(x_delta_10, x_delta_15, x_delta_20, x_delta_25, 
+                     x_delta_30) %>% 
   rename(delta.10 = x_values, delta.15 = x_values1, delta.20 = x_values2, 
-         delta.25 = x_values3) %>% 
-  select(-Method1, -Method2, -Method3)
-save(list = "x_delta", file = "data/x_n.RData")
+         delta.25 = x_values3, delta_30 = x_values4) %>% 
+  select(-Method1, -Method2, -Method3, -Method4)
+bind_cols(x_n, x_delta) %>% select(-Method1)
+
+# Power = 0.8
+x_n_plot <- x_n %>% 
+  t %>% 
+  as_tibble(.name_repair = ~ x_n$Method) %>% 
+  slice(2:ncol(x_n)) %>% 
+  stack %>% 
+  as_tibble %>%
+  rename(delta = values, Method = ind) %>%
+  mutate(n = rep(c(200, 340, 750), times = nrow(x_n)), 
+         delta = as.numeric(delta))
+x_delta_plot <- x_delta %>% 
+  t %>% 
+  as_tibble(.name_repair = ~ x_delta$Method) %>% 
+  slice(2:ncol(x_delta)) %>% 
+  stack %>% 
+  as_tibble %>%
+  rename(n = values, Method = ind) %>%
+  mutate(delta = rep(c(0.1, 0.15, 0.2, 0.25, 0.3), times = nrow(x_n)), 
+         n = as.numeric(n))
+power_80_n <- ggplot(x_n_plot) + 
+  geom_line(mapping = aes(x = n, y = delta, group = Method, color = Method)) + 
+  scale_color_viridis_d() +
+  ylab(label = expression(delta)) + 
+  ggtitle(label = "Power = 0.8")
+
+# Saving
+n <- grid.arrange(plot_n_200, plot_n_340, plot_n_750)
+plot_delta <- grid.arrange(plot_delta_00, plot_delta_05, plot_delta_10, 
+                           plot_delta_15, plot_delta_20, plot_delta_25, 
+                           plot_delta_30)
+ggsave(filename = "n.svg", path = "plots", plot = n)
+save(list = "n", file = "data/n.RData")
