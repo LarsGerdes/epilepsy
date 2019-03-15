@@ -37,7 +37,6 @@ ggpairs(
   lower = list(continuous = "points", combo = "box", discrete = "facetbar")
 )
 # ggsave(filename = "original_dataset_test.svg", path = "plots", scale = 2)
-ggplot(data = epilepsy) + geom_density(mapping = aes(x = ))
 # Regression ###################################################################
 # Logit
 summary(object = logit <- glm(
@@ -61,9 +60,37 @@ chisq.test(x = epilepsy$treatment, y = epilepsy$response)
 # -> Do not reject H0.
 # -> Independence.
 
-# Delta
-d <- dataset %>% 
-  group_by(treatment) %>% 
-  summarise(mean = mean(seizures_treatment), sd = sd(seizures_treatment))
+# Cox
+cox_summary <- summary(object = cox <- coxph(
+  formula =  Surv(time = time_baseline, event = as.numeric(censor)) ~ 
+    treatment + seizures_baseline, 
+  data = epilepsy
+))
+cox_summary <- summary(object = cox <- coxph(
+  formula =  Surv(time = time_baseline, event = as.numeric(censor)) ~ 
+    treatment + seizures_baseline_log, 
+  data = epilepsy
+))
+exp(confint(cox))
 
-((d[2, 2] - d[1, 2]) / d[1, 3])
+# Log-Rank
+survdiff(
+  formula = Surv(time = time_baseline, event = as.numeric(censor)) ~ 
+    treatment, 
+  data = epilepsy 
+)
+
+# Negative Binomial
+neg_bin_summary <- summary(object = neg_bin <- glm.nb(
+  formula = seizures_treatment ~ 
+    treatment + seizures_baseline + offset(time_study_log), 
+  data = epilepsy
+))
+neg_bin_summary <- summary(object = neg_bin <- glm.nb(
+  formula = seizures_treatment ~ 
+    treatment + seizures_baseline_log + offset(time_study_log), 
+  data = epilepsy
+))
+# AIC of are identical
+# -> We choose the model without transformation.
+# -> All parameters are significant at 0.05.
